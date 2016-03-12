@@ -1,6 +1,9 @@
 from __future__ import division
 from mayavi import mlab
 
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
 import  moviepy.editor as mpy
 
 import deformation as dfm
@@ -17,28 +20,41 @@ import time
 lam, mu, gammadot, Gamma, max_stress, p0 = import_constants()
 # set the initial axes
 a0 = np.array( [20., 15., 10] )
-# compute the time interval
-t0,t1,dt,tau,cap = dfm.set_tau_cap(a0, lam, mu, gammadot, Gamma)
+
+
 
 start = time.time()
 
+t0=0
+t1 = 20
 
-t1 = 10
-# run the deformation integral
-#Y,T = dfm.integrate_dgdt(t0 , t1 , dt , a0 , lam , mu , gammadot , Gamma)
-# get the rotations and the axes
-#axes, R = dfm.shapetensors_to_axes_rots(Y)
-# test angular velocity computations
-#w = dfm.angular_velocity(R, dt)
-# test the wrapper function deform
-
-#axes2, R2, w2, T2 = dfm.deform( t0 , t1, dt, a0, lam, mu , gammadot , Gamma ) 
-
-print dfm.deform_ode_solve(t0, t1 , 1e-4,  a0 , lam , mu , gammadot , Gamma )
+print dfm.deform(t0, t1 , 1e-4,  a0 , lam , mu , gammadot , Gamma )
 
 end = time.time()
 
 print 'Time elapsed' , round( end - start, 2), 'seconds'
+
+
+
+#some random points
+points = 20*( np.random.rand(1000, 3) - 0.5 )
+
+start = time.time()
+
+(center, radii, rotation) = dfm.getMinVolEllipse(points, 0.01)
+
+end = time.time()
+
+print 'Ellipsoid time', round(end - start , 2)
+plt.close('all')
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+
+# plot points
+ax.scatter(points[:,0], points[:,1], points[:,2], color='g', s=100)
+
+# plot ellipsoid
+dfm.plotEllipsoid(center, radii, rotation, ax=ax, plotAxes=True)
 
 """
 
@@ -72,4 +88,5 @@ animation = mpy.VideoClip(make_frame, duration=duration)
 vf_name = 'deformation.mp4'
 
 animation.write_videofile( vf_name , fps = num_fps)
+
 """
