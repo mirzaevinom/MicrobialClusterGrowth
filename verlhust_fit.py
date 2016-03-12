@@ -8,11 +8,12 @@ Created on Wed Jan 27 2016
 
 from __future__ import division
 from scipy.spatial.distance import cdist
-from scipy.optimize import  least_squares , curve_fit
+from scipy.optimize import  least_squares
 from scipy.spatial import ConvexHull
 from scipy.integrate import odeint
 from scipy.interpolate import griddata
 from matplotlib import gridspec
+from matplotlib.legend_handler import HandlerLine2D
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -28,7 +29,7 @@ for file in os.listdir("data_files"):
     if file.endswith("janus_results.pkl"):
         fnames.append(file)
 
-pkl_file = open(os.path.join( 'data_files' , fnames[3] ), 'rb')
+pkl_file = open(os.path.join( 'data_files' , fnames[1] ), 'rb')
 
 data_dict = cPickle.load( pkl_file )        
 pkl_file.close()
@@ -68,19 +69,27 @@ def convex_hull_volume(pts):
 
 
   
-plt.close('all')    
+
 
 #max_floc_size = 4 * np.pi/3 * ( 0.5**3 ) * ( glu_size * delta_x  / 1.2) **3 
-max_floc_size =  ( glu_size * delta_x ) **3 
-
+if prod_rate>0:
+    max_floc_size = np.max(vol)  
+else:
+    max_floc_size = ( glu_size * delta_x ) **3
+    
 growth =  vol  / max_floc_size
 
-times = np.linspace(0 , num_gen / 10 , len(vol) )
+
+times = np.linspace( 0 , num_gen , num_loop )
+
+sliced_times   = times[::int( 1 / delta_t ) ]
+growth = growth[::int( 1 / delta_t ) ]
+
 
 #Least squares fit to the data
 def logistic_func(y, t, p):
     
-    return p[1] * y * ( 1 - y  / p[0] )
+    return p[0] * y * ( 1 - y  )
     
     
 def ls_func( x , p):
@@ -92,17 +101,48 @@ def ls_func( x , p):
 
 def f_resid(p):
     
-    return growth - ls_func( times , p)    
+    return growth - ls_func( sliced_times , p)    
     
-guess = [1, 1]
+guess = [1]
 y0 = growth[0] 
 
 fitted_params = least_squares( f_resid , guess  ).x
+
+xdata = sliced_times
+
+ydata = odeint( logistic_func , growth[0] , sliced_times, args = ( fitted_params , ) )[:, 0]
 
 print '[K, a]=', fitted_params   
 
 
 
+#Least squares fit to the data
+def g_logistic_func(y, t, p ):
+    
+    return p[0] * y**p[1]  * ( np.abs( 1 -  y ) ) **p[2]
+    
+    
+def sls_func( x , p):
+    
+    myfunc = lambda y,t: g_logistic_func(y, t, p)
+    
+    return odeint( myfunc ,  y0 , x )[ :, 0]
+
+
+def f_sresid(p):
+    
+    return growth - sls_func( sliced_times , p)    
+    
+guess = [1  , 1 , 1]
+y0 = growth[0] 
+
+
+g_fitted_params = least_squares( f_sresid , guess  ).x
+
+g_ydata = odeint( g_logistic_func , growth[0] , sliced_times, args = ( g_fitted_params , ) )[:, 0]
+
+
+print '[r, a, b]', g_fitted_params 
 
 
 plt.close('all')
@@ -111,8 +151,8 @@ fig = plt.figure( 0 , figsize=(12, 12) )
 rect=fig.patch
 rect.set_facecolor('white')
 
-gs = gridspec.GridSpec(nrows=2 , ncols=2 , left=0.04, right=0.90 , 
-                       wspace=0.2, hspace=0.05 , width_ratios=[1, 1] , height_ratios=[1,1])
+gs = gridspec.GridSpec(nrows=2 , ncols=2 , left=0.1, right=0.90 , 
+                       wspace=0.4, hspace=0.05 , width_ratios=[1, 1] , height_ratios=[1,1])
 
 ax0=plt.subplot( gs[0] )
 ax0.set_xticks([])                               
@@ -178,22 +218,27 @@ ax1.set_axis_off()
 
 #Frame 3
 
-xdata = times
+leg3, = ax2.plot(xdata , ydata, '--g', linewidth=2 , label='Logistic')
+leg4, = ax2.plot(xdata , g_ydata, '--r', linewidth=2 , label='Generalized Verhulst')
 
-ydata = odeint( logistic_func , growth[0] , times, args = ( fitted_params , ) )[:, 0]
 
-ax2.plot(xdata , ydata, '--r', linewidth=2)
-ax2.plot( times , growth , linewidth=2  )
-ax2.set_xlabel( '$t$' , fontsize = 20 )
-ax2.set_ylabel( '$V(t)$' , fontsize = 20 )   
+ax2.legend(handler_map={leg3: HandlerLine2D()}, fontsize=16 , loc=2)   
 
+ax2.plot( sliced_times , growth , linewidth=2  )
+ax2.set_xlabel( r'$t/\tau$' , fontsize = 20 )
+ax2.set_ylabel( '$V(t) / K$' , fontsize = 20 )   
+myaxis = list( ax2.axis() )
+
+myaxis[-1] = 1.2 * myaxis[-1]
+
+ax2.axis( myaxis )
 
 # Frame 4
 
 
 ax3.plot( times , total_glucose , linewidth = 2 )
  
-ax3.set_xlabel( '$t$' , fontsize = 20 )
+ax3.set_xlabel( r'$t/\tau$' , fontsize = 20 )
 ax3.set_ylabel( 'Total glucose in the region' , fontsize = 15 )   
 
 mlab.close(all=True)
@@ -203,107 +248,76 @@ plt.savefig('verlhust_fit_prod_rate_'+ str( prod_rate )+'.png', dpi=400)
 
 
 
-plt.figure(1)
+#############################################################
 
-#Least squares fit to the data
-def g_logistic_func(y, t, p ):
-    
-    return p[2] * y * ( 1 - ( y / p[0] )**p[1] )
-    
-    
-def sls_func( x , p):
-    
-    myfunc = lambda y,t: g_logistic_func(y, t, p)
-    
-    return odeint( myfunc ,  y0 , x )[ :, 0]
+# Fractal dimension computation based on  "Vicsek, Tamas" book
+
+################################################################
 
 
-def f_sresid(p):
-    
-    return growth - sls_func( times , p)    
-    
-guess = [1 , 1 , 1]
-y0 = growth[0] 
-
-
-g_fitted_params = least_squares( f_sresid , guess  ).x
-
-xdata = times
-
-g_ydata = odeint( g_logistic_func , growth[0] , times, args = ( g_fitted_params , ) )[:, 0]
-
-plt.plot(xdata , g_ydata, '--r', linewidth=2)
-plt.plot( times , growth , linewidth=2)
-plt.xlabel( '$t$' , fontsize = 20 )
-plt.ylabel( '$V(t)$' , fontsize = 20 )   
-
-print '[K, v, a]=', g_fitted_params
-
-
-plt.figure(2)
-
-xdata = times
-
-
-grid_x = np.linspace(0 , 1 , 10 * num_loop )
-
-growth_rate     = logistic_func( ydata , times , fitted_params)
-growth_rate = griddata( ydata , growth_rate , grid_x )
-growth_rate[ np.isnan( growth_rate ) ] = 0
-
-
-
-g_growth_rate   = g_logistic_func( g_ydata , times , g_fitted_params)
-
-
-
-g_growth_rate = griddata( g_ydata , g_growth_rate , grid_x , method='linear')
-g_growth_rate[ np.isnan(g_growth_rate) ] = 0
-
-
-plt.plot( grid_x , growth_rate , linewidth = 2 , color='r' , linestyle='--' )
-plt.plot( grid_x , g_growth_rate , linewidth = 2 , color='b' )
-
-"""
-
-loc_mat_list = []
 N = len( loc_mat )
 
-for pp in [0.1 , 0.25 , 0.5 , 0.75]:
+N50 = int( N*0.5  )
+N75 = int( N*0.75 )
+N90 = int( N*0.9  )
+N95 = int( N*0.95 )
 
-    Np = int(N*pp)
-    loc_mat_list.append( loc_mat[:Np, :] )
 
+lastN = N95
+
+#Radius of gyration
+rad_gyr = np.zeros( lastN )
+
+#cells inside radius of gyration
+cells_gyr = np.zeros( lastN )
+
+#Mass of cells within radius of gyration
+mass_gyr  = np.zeros( lastN )
+
+
+for mm in range( N - lastN , N):
     
-output_file = open( os.path.join('data_files', 'loc_mat_list.pkl' ) , 'wb' )
-
-cPickle.dump(  loc_mat_list , output_file )
-
-output_file.close()
-"""
-plt.figure(3)
-
-times = np.linspace( 0 , num_gen , num_loop )
-sliced_time   = times[::int( 1 / delta_t ) ]
-sliced_growth = growth[::int( 1 / delta_t ) ]
+    
+    c_mass                       = np.sum( loc_mat[ 0 : mm , 0:3 ] , axis=0 ) / mm
+        
+    rad_gyr[ mm - N + lastN ]    = np.sum( 1 / mm  * ( loc_mat[ 0 : mm  , 0:3] - c_mass )** 2 )**(1/2)
+    
+    dmm                          = np.sum( ( loc_mat[:, 0:3] - c_mass )**2 , axis=1 )
+    
+    cells_within                 = np.nonzero( dmm <= ( rad_gyr[ mm - N + lastN ] ) ** 2 )[0]
+    cells_gyr[ mm - N + lastN ]  = len( cells_within )    
 
 
-  
-guess = [1 , 1 , 1]
-y0 = sliced_growth[0] 
+#Radius of gyration fractal dimension
+fig = plt.figure(1)
+
+lin_fit     = np.polyfit(  np.log( rad_gyr) , np.log( cells_gyr ) , 1 )
+func_fit    = np.poly1d( lin_fit )
+
+fdim        = lin_fit[0]
+
+ax = fig.add_subplot(111)
+
+ax.plot(  np.log( rad_gyr) ,  np.log( cells_gyr ) , 
+          linewidth=2 , color='blue' )
+
+ax.plot(  np.log( rad_gyr ) , func_fit( np.log( rad_gyr ) )  , 
+          linestyle='--',  color='red' ,  linewidth=2 ) 
 
 
-sliced_fit = least_squares( f_sresid , guess  ).x
+ax.set_xlabel( r'$\ln{(r_g)}$'  , fontsize=16 ) 
+ax.set_ylabel( r'$\ln{(N)}$'    ,  fontsize=16 )
 
-print '[K, v, a]=', sliced_fit
+ax.text(0.01 , 0.9 , 'Slope=$'+str( round( fdim , 2) )+'$' ,
+        verticalalignment='bottom', horizontalalignment='left',
+        transform=ax.transAxes ,
+        color='black' , fontsize=16)
 
 
-ydata = odeint( g_logistic_func , sliced_growth[0] , sliced_time, args = ( sliced_fit , ) )[:, 0]
+plt.savefig( 'frac_dim_radgyr_volume_fit_'+str(prod_rate)+'.png' , dpi = 400 ) 
+ 
 
-
-plt.plot( sliced_time , sliced_growth , linewidth=2 )
-plt.plot( sliced_time , ydata , linewidth=2 , linestyle='--' , color='red')
-
+print 'Radius of gyration  based fractal dimension ' + str(fdim)
 
 end = time.time()
 print 'Time elapsed ' + str( round( ( end - start ) , 2 ) ) + ' seconds'
