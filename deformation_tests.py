@@ -27,22 +27,16 @@ t0=0
 t1 = 20
 
 
-
-
-
-
-
-
-
 #some random points
 #points = 20*( np.random.rand(1000, 3) - 0.5 )
 
 points = np.load( 'sample_cluster.npy' )[:, 0:3]
 start = time.time()
 
-(points, radii) = dfm.get_lab_ellipse(points)
+(points, radii) = dfm.get_body_ellipse(points)
 print radii
 
+print dfm.deform(t0, t1 , 1e-5, radii , lam , mu , gammadot , Gamma )
 end = time.time()
 
 print 'Time elapsed' , round( end - start, 2), 'seconds'

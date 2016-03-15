@@ -444,8 +444,7 @@ def getMinVolEllipse(P, tolerance=0.01):
                    np.dot(P.T, np.dot(np.diag(u), P)) - 
                    np.array([[a * b for b in center] for a in center])
                    ) / d
-    
-    print A               
+           
     # Get the values we'd like to return
     U, s, rotation = la.svd(A)
     radii = 1.0/np.sqrt(s)
@@ -453,7 +452,7 @@ def getMinVolEllipse(P, tolerance=0.01):
     return (center, radii, rotation)
  
         
-def get_lab_ellipse(points):
+def get_body_ellipse(points):
     
     """ Given coordinates of 3D points in an Mx3 array. Returns the points
     and ellipsoid axes in the lab frame ( a>=b>=c ). Longest axis in x-direction,
@@ -461,15 +460,15 @@ def get_lab_ellipse(points):
     """
     
     (center, radii, rotation) =  getMinVolEllipse( points ) 
-    
-    points = np.inner( points - center , rotation.T )
 
     # Sort the radii in the lab frame    
     sorted_index = np.argsort(radii)[::-1]
     radii = radii[ sorted_index ]
     
-    #Sort the points in the lab frame
-    points = points[: , sorted_index ]
+    # Sort the rotation matrix accordingly
+    rotation = rotation[: , sorted_index]    
+    points = np.inner( points - center , rotation.T )
+   
     
     return ( points, radii )
 
@@ -525,3 +524,61 @@ def plotEllipsoid(radii , center=np.array([0,0,0]) ,  rotation = np.identity(3) 
         plt.show()
         plt.close(fig)
         del fig
+
+
+def set_initial_pars(data_raw):                                                 
+  """ Given an Mx3 array of coordinates, returns (1) the coordinates in the     
+  body frame, (2) the ellipsoid axis lengths, and the (3) rotation that sends   
+  the lab frame into the body frame. This proceeds via a modified POD           
+  (similar to PCA) analysis. Byrne 2011 explains how to deal with flocs         
+  smaller than 3 bacteria; we follow these prescripions.                        
+                                                                                
+  NOTE: Currently the units MUST be in microns. This is because we add 1 to     
+  any axes that are too small.                                                  
+  """                                                                           
+  # obtain the means                                                            
+  mu = np.mean(data_raw,axis=0)                                                 
+  # center the data                                                             
+  data_c = data_raw - mu                                                        
+  if len(data_c) > 2:                                                           
+    # obtain the eigensystem                                                    
+    evals, evecs = np.linalg.eigh(np.dot(data_c.T,data_c))                      
+    # rotate the centered data                                                  
+    data_rc = np.dot(data_c, evecs)                                             
+    # compute the axes lenghts                                                  
+    axes = 2.0*np.std(data_rc,axis=0)                                           
+    # sort the axes lengths                                                     
+    indices=np.argsort(axes)[::-1]                                              
+    axes_sorted = axes[indices]                                                 
+    # reorder the columns of the evec matrix to reflect sorting                 
+    evecs_sorted = evecs[:,indices]                                             
+    # check to make sure evecs is a rotation matrix                             
+    tol = 10**(-6)                                                              
+    if np.abs(np.linalg.det(evecs_sorted)) > 1.+tol:                            
+      raise Exception("This is not a rotation")                                 
+    if np.linalg.det(evecs_sorted) < 0:                                         
+      #then it includes a reflection and rotation, so get rid of the reflection 
+      evecs_sorted = - evecs_sorted                                             
+    # asign output                                                              
+    R = evecs_sorted.T                                                          
+    a = axes_sorted                                                             
+    # obtain rotated coordinates                                                
+    coords = np.dot(R,data_c.T).T                                               
+  elif len(data_c) == 2:                                                        
+    # there are two bacteria. they will be dist apart, centered at +/- half     
+    # the distance. the axes will be halfdist + 1 along the first, and 1        
+    # along the others                                                          
+    half_dist = np.linalg.norm(data_c[0] - data_c[1]) / 2.0                     
+    coords = np.array([[half_dist, 0.0, 0.0],                                   
+                       [-half_dist, 0.0, 0.0]])                                 
+    a = np.array([half_dist+1.,1.,1.])                                          
+    R = np.identity(3) # placeholder                                            
+  elif len(data_c) == 1:                                                        
+    coords = np.array([[0., 0., 0.]])                                           
+    a = np.array([1.,1.,1.])                                                    
+    R = np.identity(3) # this needs fixing                                      
+  # make sure theat they are all at least one micron                            
+  for i in range(3):                                                            
+    if a[i] < 1.:                                                               
+      a[i]=1.                                                                   
+  return(coords, a,  R)

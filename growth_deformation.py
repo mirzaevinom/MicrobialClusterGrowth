@@ -203,13 +203,15 @@ def hex2color(s):
     
     
 loc_mat             = np.load('sample_cluster.npy')
-points , radii      = dfm.get_lab_ellipse( loc_mat[ : , 0:3] ) 
+points , radii      = dfm.get_body_ellipse( loc_mat[ : , 0:3] ) 
 
 loc_mat[:, 0:3]     = points
 
 
 axes                = np.zeros( ( num_loop + 1 , 3 ) )
 axes[0]             = radii
+
+G_vector            = np.zeros( ( num_loop + 1 , 6 ) )
  
 for tt in range( num_loop ):
     
@@ -249,7 +251,7 @@ for tt in range( num_loop ):
        
        # Change the ellipse radii in lab frame
        
-       points , radii = dfm.get_lab_ellipse( loc_mat[ : , 0:3] ) 
+       points , radii = dfm.get_body_ellipse( loc_mat[ : , 0:3] ) 
 
        loc_mat[:, 0:3]      = points
        axes[tt+1]    = radii

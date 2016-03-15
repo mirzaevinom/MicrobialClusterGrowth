@@ -1,6 +1,6 @@
 
 # ----- Inputs -----
-lam = 20                                    # viscosity ratio, unitless
+lam = 25                                    # viscosity ratio, unitless
 mu_si = 0.01                                # matrix viscosity,  Pa s=(N s)/(m ^2)
 gammadot_si = 100.                         # shear rate, 1/s
 Gamma_si = 4.1e-9                           # interfacial tension, N/m
