@@ -33,10 +33,22 @@ t1 = 20
 points = np.load( 'sample_cluster.npy' )[:, 0:3]
 start = time.time()
 
-(points, radii) = dfm.get_body_ellipse(points)
+(points, radii , shape_tens) = dfm.get_body_ellipse(points)
 print radii
 
-print dfm.deform(t0, t1 , 1e-5, radii , lam , mu , gammadot , Gamma )
+
+# set up the initial shape tensor
+G0 = np.diag( 1 / a0**2 )
+G0v = dfm.tens2vec(G0)
+  
+radii , G0v = dfm.deform(t0, t1 , 1e-5, G0v , lam , mu , gammadot , Gamma )
+
+print radii
+
+radii , G0v = dfm.deform(t0, t1 , 1e-5, G0v , lam , mu , gammadot , Gamma )
+
+print radii
+
 end = time.time()
 
 print 'Time elapsed' , round( end - start, 2), 'seconds'

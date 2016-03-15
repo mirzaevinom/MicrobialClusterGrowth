@@ -23,9 +23,6 @@ start = time.time()
 # import the constants
 lam, mu, gammadot, Gamma, max_stress, p0 = import_constants()
 
-# set the initial axes
-a0 = np.array( [20., 15., 10] )
-
 t0=0
 t1 = 20
 
@@ -125,8 +122,11 @@ def cell_move( loc_mat ,  ksi = ksi , r_overlap = r_overlap ,
         neig         = np.intersect1d( neig1, neig2 )
         mag_vec     = mag_vec[ neig ]
         vec         = vec[ neig ]
-    
-        #magnitude of modified Lennard-Jones force. Equilibrium between repulsion and adhesion is set to r_e = 1    
+            
+        #==============================================================================
+        #            magnitude of modified Lennard-Jones force. Equilibrium between 
+        #           repulsion and adhesion is set to r_e = 1    
+        #==============================================================================
         force       = 24 * f_strength * ( 1 * ( 1/mag_vec )**12- ( 1/mag_vec )**6  )  /  ( mag_vec**2 )
         
         #Lennard-Jones force vector 
@@ -203,7 +203,7 @@ def hex2color(s):
     
     
 loc_mat             = np.load('sample_cluster.npy')
-points , radii      = dfm.get_body_ellipse( loc_mat[ : , 0:3] ) 
+points, radii , shape_tens      = dfm.get_body_ellipse( loc_mat[ : , 0:3] ) 
 
 loc_mat[:, 0:3]     = points
 
@@ -212,34 +212,37 @@ axes                = np.zeros( ( num_loop + 1 , 3 ) )
 axes[0]             = radii
 
 G_vector            = np.zeros( ( num_loop + 1 , 6 ) )
+G0 = np.diag( 1 / radii**2 )
+G_vector[0] = dfm.tens2vec(G0)
+  
  
 for tt in range( num_loop ):
     
     
     loc_mat[: , 4] = loc_mat[: , 4] + delta_t
-    
-#==============================================================================
-#   deform the cell cluster
-#==============================================================================
-    
+        
+    #==============================================================================
+    #   deform the cell cluster
+    #==============================================================================
+        
 
-    axes[tt+1] = dfm.deform(t0, t1 , 1e-5, axes[ tt ] , lam , mu , gammadot , Gamma )
+    axes[tt+1] , G_vector[tt+1] = dfm.deform(t0, t1 , 1e-5, G_vector[tt] , lam , mu , gammadot , Gamma )
     
     dfm_frac = axes[ tt+1 ]  / axes[ tt ]
     
     loc_mat[: , 0:3] = loc_mat[ : , 0:3] * dfm_frac
-
-#==============================================================================
-#    move the cells    
-#==============================================================================
     
+    #==============================================================================
+    #    move the cells    
+    #==============================================================================
+        
     loc_mat = cell_move(  loc_mat )
           
+              
+    #==============================================================================
+    #     divide the cells
+    #==============================================================================
           
-#==============================================================================
-#     divide the cells
-#==============================================================================
-      
     mitotic_cells1 = np.nonzero( loc_mat[ : , 4 ] > cycle_time[ range( len(loc_mat) ) ] )[0]
     mitotic_cells2 = np.nonzero( loc_mat[ : , 3]  > 0 )[0]
     
@@ -247,15 +250,34 @@ for tt in range( num_loop ):
            
     if len(mitotic_cells) > 0:
         
-       loc_mat = cell_divide( loc_mat ,  mitotic_cells , tt)
+        loc_mat = cell_divide( loc_mat ,  mitotic_cells , tt)
+           
+        # Change the ellipsoid axis in the body frame
+           
+        points, radii , shape_tens  = dfm.get_body_ellipse( loc_mat[ : , 0:3] ) 
+        loc_mat[:, 0:3]             = points
+        axes[tt+1]                  = radii
+        
        
-       # Change the ellipse radii in lab frame
-       
-       points , radii = dfm.get_body_ellipse( loc_mat[ : , 0:3] ) 
+        
+        #==============================================================================
+        # Rotate the shape tensor in the direction of the previous shape tensor
+        #==============================================================================
+        
+        #G_vector[tt+1]           = dfm.tens2vec( shape_tens )         
 
-       loc_mat[:, 0:3]      = points
-       axes[tt+1]    = radii
-
+        evals, V                    = np.linalg.eigh( dfm.vec2tens( G_vector[tt+1] ) )
+        
+        rad2                        = 1.0 / np.sqrt(np.abs( evals ) )
+        # Sort the radii in the body frame    
+        sorted_index                = np.argsort(rad2)[::-1]
+        
+        # Sort the rotation matrix accordingly
+        V                           = V[: , sorted_index] 
+        
+        G0                          = np.dot( V, np.dot( np.diag(1 / radii**2 ) , V.T ) )
+        G_vector[tt+1]              = dfm.tens2vec( G0 )
+        
        
  
 np.save('deformed_cluster', loc_mat)      

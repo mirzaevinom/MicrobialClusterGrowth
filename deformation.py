@@ -371,16 +371,13 @@ def ode_rhs( Gv , t ,  L, lam, mu, Gamma):
   return dgdt
 
 
-def deform(t0, t1 , dt, a0 , lam , mu , gammadot , Gamma ):
+def deform(t0, t1 , dt, G0v , lam , mu , gammadot , Gamma ):
     
   # set up the velocity gradient L defined by du/dy=gammadot
   L = np.zeros([3,3])
   L[0,1] = gammadot
  
-  # set up the initial shape tensor
-  G0 = np.diag( 1 / a0**2 )
-  G0v = tens2vec(G0)
-  
+
   #dt = 0.001
   mytime = np.arange(t0 , t1, dt)
   
@@ -388,7 +385,7 @@ def deform(t0, t1 , dt, a0 , lam , mu , gammadot , Gamma ):
       
   axes = dropAxes( yout[-1] )
   
-  return axes
+  return axes, yout[-1]
   
   
 def getMinVolEllipse(P, tolerance=0.01):
@@ -449,19 +446,19 @@ def getMinVolEllipse(P, tolerance=0.01):
     U, s, rotation = la.svd(A)
     radii = 1.0/np.sqrt(s)
     
-    return (center, radii, rotation)
+    return (center, radii, rotation, A)
  
         
 def get_body_ellipse(points):
     
     """ Given coordinates of 3D points in an Mx3 array. Returns the points
-    and ellipsoid axes in the lab frame ( a>=b>=c ). Longest axis in x-direction,
+    and ellipsoid axes in the body frame ( a>=b>=c ). Longest axis in x-direction,
     second longes is in y-direction and smallest axis in z-direction. 
     """
     
-    (center, radii, rotation) =  getMinVolEllipse( points ) 
+    (center, radii, rotation, shape_tens) =  getMinVolEllipse( points ) 
 
-    # Sort the radii in the lab frame    
+    # Sort the radii in the body frame    
     sorted_index = np.argsort(radii)[::-1]
     radii = radii[ sorted_index ]
     
@@ -470,14 +467,14 @@ def get_body_ellipse(points):
     points = np.inner( points - center , rotation.T )
    
     
-    return ( points, radii )
+    return ( points, radii , shape_tens )
 
 
    
 def plotEllipsoid(radii , center=np.array([0,0,0]) ,  rotation = np.identity(3) , 
                   ax=None, plotAxes=False, cageColor='b', cageAlpha=0.2):
 
-    """Plot an ellipsoid
+    """Given axis length of an ellipsoid, plot the ellipsoid in body frame.
     
     The code is due to Michael Imelfort, see the documentation at    
     https://github.com/minillinim/ellipsoid
