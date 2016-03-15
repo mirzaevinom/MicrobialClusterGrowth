@@ -13,48 +13,53 @@ from constants import import_constants
 import numpy as np
 
 import time
+
 """ Test the core functions of deformation.py
 """
 
 # import the constants
 lam, mu, gammadot, Gamma, max_stress, p0 = import_constants()
+
 # set the initial axes
 a0 = np.array( [20., 15., 10] )
-
-
-
-start = time.time()
 
 t0=0
 t1 = 20
 
-print dfm.deform(t0, t1 , 1e-4,  a0 , lam , mu , gammadot , Gamma )
+
+
+
+
+
+
+
+
+#some random points
+#points = 20*( np.random.rand(1000, 3) - 0.5 )
+
+points = np.load( 'sample_cluster.npy' )[:, 0:3]
+start = time.time()
+
+(points, radii) = dfm.get_lab_ellipse(points)
+print radii
 
 end = time.time()
 
 print 'Time elapsed' , round( end - start, 2), 'seconds'
 
 
-
-#some random points
-points = 20*( np.random.rand(1000, 3) - 0.5 )
-
-start = time.time()
-
-(center, radii, rotation) = dfm.getMinVolEllipse(points, 0.01)
-
-end = time.time()
-
-print 'Ellipsoid time', round(end - start , 2)
 plt.close('all')
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
 
 # plot points
-ax.scatter(points[:,0], points[:,1], points[:,2], color='g', s=100)
+ax.scatter( points[:, 0] , points[:, 1] , points[:, 2] , color='g' )
 
 # plot ellipsoid
-dfm.plotEllipsoid(center, radii, rotation, ax=ax, plotAxes=True)
+dfm.plotEllipsoid( radii ,  ax=ax, plotAxes=True )
+
+#Change the view angle and elevation
+ax.view_init( azim=-10, elev=30 )
 
 """
 

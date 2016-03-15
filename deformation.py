@@ -101,15 +101,8 @@ def dropAxes(Gv):
   daxesPrim = np.sqrt(1.0/np.abs(D))        # drop axes, as a row vector
   # sort axis lengths in descending order
   daxes     = np.sort(daxesPrim)[::-1]      # [::-1] reverses the order 
-  sortOrder = np.argsort(daxesPrim)[::-1]
-  # compute theta, in degrees I guess
-  theta = np.arctan2(V[1,sortOrder[0]] , V[0,sortOrder[0]]) * 180/np.pi
-  if theta < -90:
-    theta = theta+180
-  elif theta > 90:
-    theta = theta-180
 
-  return [daxes, theta]
+  return daxes
 
 def eshtens(G, lam, evalsPrim, Evecs):
   """Compute concentration tensors for droplet shape tensor G and viscosity 
@@ -393,9 +386,10 @@ def deform(t0, t1 , dt, a0 , lam , mu , gammadot , Gamma ):
   
   yout = odeint(ode_rhs , G0v, mytime, args=(L, lam, mu, Gamma)  )
       
-  axes, R = dropAxes( yout[-1] )
+  axes = dropAxes( yout[-1] )
   
   return axes
+  
   
 def getMinVolEllipse(P, tolerance=0.01):
     """ Find the minimum volume ellipsoid which holds all the points
@@ -450,16 +444,40 @@ def getMinVolEllipse(P, tolerance=0.01):
                    np.dot(P.T, np.dot(np.diag(u), P)) - 
                    np.array([[a * b for b in center] for a in center])
                    ) / d
-                   
+    
+    print A               
     # Get the values we'd like to return
     U, s, rotation = la.svd(A)
     radii = 1.0/np.sqrt(s)
     
     return (center, radii, rotation)
  
+        
+def get_lab_ellipse(points):
+    
+    """ Given coordinates of 3D points in an Mx3 array. Returns the points
+    and ellipsoid axes in the lab frame ( a>=b>=c ). Longest axis in x-direction,
+    second longes is in y-direction and smallest axis in z-direction. 
+    """
+    
+    (center, radii, rotation) =  getMinVolEllipse( points ) 
+    
+    points = np.inner( points - center , rotation.T )
+
+    # Sort the radii in the lab frame    
+    sorted_index = np.argsort(radii)[::-1]
+    radii = radii[ sorted_index ]
+    
+    #Sort the points in the lab frame
+    points = points[: , sorted_index ]
+    
+    return ( points, radii )
+
 
    
-def plotEllipsoid(center, radii, rotation, ax=None, plotAxes=False, cageColor='b', cageAlpha=0.2):
+def plotEllipsoid(radii , center=np.array([0,0,0]) ,  rotation = np.identity(3) , 
+                  ax=None, plotAxes=False, cageColor='b', cageAlpha=0.2):
+
     """Plot an ellipsoid
     
     The code is due to Michael Imelfort, see the documentation at    
@@ -493,7 +511,6 @@ def plotEllipsoid(center, radii, rotation, ax=None, plotAxes=False, cageColor='b
         for i in range(len(axes)):
             axes[i] = np.dot(axes[i], rotation)
 
-
         # plot axes
         for p in axes:
             X3 = np.linspace(-p[0], p[0], 100) + center[0]
@@ -507,4 +524,4 @@ def plotEllipsoid(center, radii, rotation, ax=None, plotAxes=False, cageColor='b
     if make_ax:
         plt.show()
         plt.close(fig)
-        del fig    
+        del fig
