@@ -21,11 +21,12 @@ import time
 lam, mu, gammadot, Gamma, max_stress, p0 = import_constants()
 
 # set the initial axes
-a0 = np.array( [20., 15., 10] )
+a0 = np.array( [2.316 , 1.361 , 1.304] )
 
-t0=0
-t1 = 20
+t0 = 0
+t1 = 1
 
+t0,t1,dt,tau,cap = dfm.set_tau_cap(a0, lam, mu, gammadot, Gamma)
 
 #some random points
 #points = 20*( np.random.rand(1000, 3) - 0.5 )
@@ -41,13 +42,13 @@ print radii
 G0 = np.diag( 1 / a0**2 )
 G0v = dfm.tens2vec(G0)
   
-radii , G0v = dfm.deform(t0, t1 , 1e-5, G0v , lam , mu , gammadot , Gamma )
+radii , G0v = dfm.deform(t0, t1 , dt , G0v , lam , mu , gammadot , Gamma )
 
 print radii
-
-radii , G0v = dfm.deform(t0, t1 , 1e-5, G0v , lam , mu , gammadot , Gamma )
-
-print radii
+#
+#radii , G0v = dfm.deform(t0, t1 , dt , G0v , lam , mu , gammadot , Gamma )
+#
+#print radii
 
 end = time.time()
 

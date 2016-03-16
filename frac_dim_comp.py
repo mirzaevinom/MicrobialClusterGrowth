@@ -17,7 +17,23 @@ import mayavi.mlab as mlab
 
 start = time.time()
 
-loc_mat = np.load( 'deformed_cluster.npy' )
+
+
+fnames = []
+
+for file in os.listdir("data_files"):
+    if file.endswith("deformation.pkl"):
+        fnames.append(file)
+
+pkl_file = open(os.path.join( 'data_files' , fnames[-1] ), 'rb')
+
+data_dict = cPickle.load( pkl_file )        
+pkl_file.close()
+
+#Load all the parameters and simulation results from the pkl file
+locals().update( data_dict )
+
+
 #==============================================================================
 #  Visualization   
 #==============================================================================
@@ -57,7 +73,7 @@ N90 = int( N*0.9  )
 N95 = int( N*0.95 )
 
 
-lastN = N75
+lastN = N50
 
 #Radius of gyration
 rad_gyr = np.zeros( lastN )

@@ -239,6 +239,8 @@ ddd         = np.unique( np.max(ddd1, axis=0) )
 if len(ddd)>0:
     loc_mat         = np.delete(loc_mat , ddd, axis=0 )
 
+np.save('cluster_10gen', loc_mat)
+
 #==============================================================================
 #  Visualization   
 #==============================================================================

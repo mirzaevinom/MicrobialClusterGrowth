@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Jan 27 2016
+Created on Mar 13 2016
 
 @author: Inom Mirzaev
 
@@ -12,11 +12,10 @@ from scipy.spatial import ConvexHull
 from constants import import_constants
 
 import numpy as np
-import matplotlib.pyplot as plt
 import deformation as dfm
 
-import time
-import mayavi.mlab as mlab
+import time, cPickle, os
+
 
 start = time.time()
 
@@ -29,7 +28,7 @@ t1 = 20
 ########
 #Parameters for cell movement and proliferation
 tau_p = 1
-r_cut = 1.1
+r_cut = 1.5
 delta_t = 0.01
 r_overlap = 0.9
 
@@ -42,7 +41,7 @@ f_strength = 1e-1
 
 ###########
 #Number of generations for to be simulated
-num_gen = 1
+num_gen = 10
 
 #Loop adjustment due to number of generation and generation time of a single cell
 num_loop = int( tau_p * num_gen / delta_t )
@@ -80,6 +79,7 @@ sphr_shift = np.delete(sphr_shift , tbd , axis=0)
 #==============================================================================
 
 
+
 init_loc_mat  = np.array( [ [0 , 0 , 0 , 1 , 0, 0 , 0] , 
                        [0 , 1 , 0 , 1 , 0.4, 0 , 0] , 
                        [0 , 0 , 1 , 1 , 0.3, 0 , 0] , 
@@ -102,7 +102,6 @@ cycle_time = np.concatenate( ( cycle_time1 , cycle_time2 , cycle_time3 ) )
 np.random.shuffle( cycle_time )
 
 
-loc_mat = init_loc_mat
 
 
 def cell_move( loc_mat ,  ksi = ksi , r_overlap = r_overlap , 
@@ -171,8 +170,6 @@ def cell_divide( loc_mat , mitotic_cells , tt ,  sphr_shift = sphr_shift):
  
     return loc_mat
 
-
-
 #Computes the volume of the tetrahedron
 def tetrahedron_volume(a , b , c , d ):
     return np.abs(np.einsum('ij,ij->i', a-d, np.cross(b-d, c-d))) / 6
@@ -189,54 +186,81 @@ def convex_hull_volume(pts):
     return np.sum(tetrahedron_volume(tets[:, 0], tets[:, 1] ,
                                      tets[:, 2], tets[:, 3]))    
 
-def hex2color(s):
-    
-    "Convert hex string (like html uses, eg, #efefef ) to a r,g,b tuple"
 
-    if s.find('#')!=0 or len(s)!=7:
-        raise ValueError('s must be a hex string like "#efefef#')
+vol                             = np.zeros( num_loop )
+      
+#init_loc_mat                    = np.load('cluster_10gen.npy')
 
-    r,g,b = map(lambda x: int('0x' + x, 16)/256.0, (s[1:3], s[3:5], s[5:7]))
-
-    return r,g,b
-    
-    
-    
-loc_mat             = np.load('sample_cluster.npy')
-points, radii , shape_tens      = dfm.get_body_ellipse( loc_mat[ : , 0:3] ) 
-
-loc_mat[:, 0:3]     = points
+loc_mat                         = init_loc_mat
 
 
-axes                = np.zeros( ( num_loop + 1 , 3 ) )
-axes[0]             = radii
 
-G_vector            = np.zeros( ( num_loop + 1 , 6 ) )
-G0 = np.diag( 1 / radii**2 )
-G_vector[0] = dfm.tens2vec(G0)
+axes                            = np.zeros( ( num_loop + 1 , 3 ) )
+G_vector                        = np.zeros( ( num_loop + 1 , 6 ) )
+
+
+#points, radii , shape_tens      = dfm.get_body_ellipse( loc_mat[ : , 0:3] ) 
+
+#loc_mat[:, 0:3]                 = points
+#axes[0]                         = radii
+
+#G0                              = np.diag( 1 / radii**2 )
+#G_vector[0]                     = dfm.tens2vec(G0)
   
+loc_mat_list = []
  
 for tt in range( num_loop ):
     
+    #Append loc_mat at each generation
+    
+    if np.mod(tt, 99)==0:
+        loc_mat_list.append([loc_mat])
     
     loc_mat[: , 4] = loc_mat[: , 4] + delta_t
-        
+    
+    #==============================================================================
+    #   Since new cells were added we need to change the ellipsoid axis 
+    #   in the body frame
+    #==============================================================================
+               
+    points, radii , shape_tens  = dfm.get_body_ellipse( loc_mat[ : , 0:3] ) 
+    loc_mat[:, 0:3]             = points
+    axes[tt]                    = radii
+    G_vector[tt]                = dfm.tens2vec( shape_tens )       
+    
+    
+    
     #==============================================================================
     #   deform the cell cluster
     #==============================================================================
         
-
-    axes[tt+1] , G_vector[tt+1] = dfm.deform(t0, t1 , 1e-5, G_vector[tt] , lam , mu , gammadot , Gamma )
+    dt = dfm.set_tau_cap( axes[tt] , lam, mu, gammadot, Gamma)[2]
+    
+    axes[tt+1] , G_vector[tt+1] = dfm.deform(t0, t1 , dt , G_vector[tt] , lam , mu , gammadot , Gamma )
     
     dfm_frac = axes[ tt+1 ]  / axes[ tt ]
     
-    loc_mat[: , 0:3] = loc_mat[ : , 0:3] * dfm_frac
-    
+    if np.max( dfm_frac ) < 2 and np.min(dfm_frac)>0.9:
+        loc_mat[: , 0:3] = loc_mat[ : , 0:3] * dfm_frac
+
+
     #==============================================================================
     #    move the cells    
     #==============================================================================
         
     loc_mat = cell_move(  loc_mat )
+
+
+    #==============================================================================
+    # Measure the volume at that time
+    #==============================================================================
+    
+    ar_norm = np.linalg.norm( loc_mat[ : , 0:3] , axis=1 )
+    ar_norm[ ar_norm==0 ] = 1
+        
+    pts = loc_mat[: , 0:3] + ( loc_mat[: , 0:3].T / ar_norm   * 0.5).T 
+    
+    vol[tt]   =  convex_hull_volume( pts ) 
           
               
     #==============================================================================
@@ -251,36 +275,29 @@ for tt in range( num_loop ):
     if len(mitotic_cells) > 0:
         
         loc_mat = cell_divide( loc_mat ,  mitotic_cells , tt)
-           
-        # Change the ellipsoid axis in the body frame
-           
-        points, radii , shape_tens  = dfm.get_body_ellipse( loc_mat[ : , 0:3] ) 
-        loc_mat[:, 0:3]             = points
-        axes[tt+1]                  = radii
+                   
+#   
+#       
+#        #==============================================================================
+#        # Rotate the shape tensor in the direction of the previous shape tensor
+#        #==============================================================================
+#        
+#        #G_vector[tt+1]           = dfm.tens2vec( shape_tens )         
+#
+#        evals, V                    = np.linalg.eigh( dfm.vec2tens( G_vector[tt+1] ) )
+#        
+#        rad2                        = 1.0 / np.sqrt(np.abs( evals ) )
+#        # Sort the radii in the body frame    
+#        sorted_index                = np.argsort(rad2)[::-1]
+#        
+#        # Sort the rotation matrix accordingly
+#        V                           = V[: , sorted_index] 
+#        
+#        G0                          = np.dot( V, np.dot( np.diag(1 / radii**2 ) , V.T ) )
+#        G_vector[tt+1]              = dfm.tens2vec( G0 )
+#     
+#        
         
-       
-        
-        #==============================================================================
-        # Rotate the shape tensor in the direction of the previous shape tensor
-        #==============================================================================
-        
-        #G_vector[tt+1]           = dfm.tens2vec( shape_tens )         
-
-        evals, V                    = np.linalg.eigh( dfm.vec2tens( G_vector[tt+1] ) )
-        
-        rad2                        = 1.0 / np.sqrt(np.abs( evals ) )
-        # Sort the radii in the body frame    
-        sorted_index                = np.argsort(rad2)[::-1]
-        
-        # Sort the rotation matrix accordingly
-        V                           = V[: , sorted_index] 
-        
-        G0                          = np.dot( V, np.dot( np.diag(1 / radii**2 ) , V.T ) )
-        G_vector[tt+1]              = dfm.tens2vec( G0 )
-        
-       
- 
-np.save('deformed_cluster', loc_mat)      
 
 end = time.time()
 
@@ -289,73 +306,33 @@ print 'Number of cells at the end ' + str( len(loc_mat) )
 print 'Time elapsed ',  round( ( end - start ) , 2 ) , ' seconds'
 
 
-#==============================================================================
-#  Visualization   
-#==============================================================================
-
-mlab.close(all=True)
-mlab.figure(  bgcolor=(1,1,1) )
-
-cell_color = hex2color('#32CD32')
-
-mlab.points3d( loc_mat[:, 0], loc_mat[:, 1], loc_mat[:, 2] , 
-               0.5*np.ones( len( loc_mat ) ), scale_factor=2.0 , 
-               resolution=20, color = cell_color  )
-               
-mlab.view(distance = 75 )
-
-
-"""
 
  
-
-#==============================================================================
-# This code deletes overlapping cells
-#==============================================================================
-
-distances   = cdist( loc_mat[:, 0:3] ,  loc_mat[:, 0:3] ) + 4 * np.identity( len( loc_mat ) ) 
-mydist      = distances + np.triu( np.ones_like( distances ) )
-
-ddd1        = np.asanyarray( np.nonzero( mydist < r_overlap ) )
-ddd         = np.unique( np.max(ddd1, axis=0) )
-
-if len(ddd)>0:
-    loc_mat         = np.delete(loc_mat , ddd, axis=0 )
 
 
 data_dict = {
             'init_loc_mat' : init_loc_mat ,
-            'loc_mat' : loc_mat  , 
-            'glu_size' : glu_size ,
-            'glucose' : glucose  ,
+            'loc_mat' : loc_mat  ,
+            'loc_mat_list' : loc_mat_list,
             'vol' : vol ,
-            'dry_vol' : dry_vol ,
-            'max_floc_size' : max_floc_size ,
-            'total_glucose' : total_glucose ,
             'num_loop' : num_loop  ,
             'cycle_time' : cycle_time ,
+            'axes' : axes,
+            'G_vector' : G_vector,
             'delta_t' : delta_t  , 
-            'delta_x' : delta_x , 
             'tau_p' : tau_p ,
             'r_cut' : r_cut ,      
             'r_overlap' : r_overlap ,  
             'ksi' : ksi , 
-            'f_strength' : f_strength ,        
-            'diff_con' : diff_con , 
-            'decay_rate' : decay_rate , 
-            'consum_rate' : consum_rate ,
-            'req_glu' : req_glu ,
-            'prod_rate' : prod_rate ,
-            'kappa' : kappa ,
-            'num_gen' : num_gen ,
-            'max_gluc' : max_gluc     
+            'f_strength' : f_strength ,
+            't1' : t1
            }
 
-fname = 'data_' + time.strftime( "%d_%H_%M" , time.localtime() ) + '_janus_results.pkl'  
+fname = 'data_' + time.strftime( "%d_%H_%M" , time.localtime() ) + '_deformation.pkl'  
 output_file = open( os.path.join( 'data_files' , fname ) , 'wb')
   
 cPickle.dump(data_dict, output_file)
 
 output_file.close()
 
-"""
+

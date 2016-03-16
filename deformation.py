@@ -304,6 +304,14 @@ def ode_rhs( Gv , t ,  L, lam, mu, Gamma):
   evals, V = np.linalg.eigh(G)
   a=1./np.sqrt(np.abs(evals))
 
+  # Sort the radii in the body frame    
+  sorted_index                = np.argsort(a)[::-1]
+  
+  a = a[sorted_index]
+
+  # Sort the rotation matrix accordingly
+  V                           = V[: , sorted_index] 
+
   # Compute appropriate elliptic integrals of the first (ellipk) and second 
   # (ellipe) kinds, store them in F (3x1 array)
   F = np.zeros(3)			  
@@ -381,8 +389,7 @@ def deform(t0, t1 , dt, G0v , lam , mu , gammadot , Gamma ):
   #dt = 0.001
   mytime = np.arange(t0 , t1, dt)
   
-  yout = odeint(ode_rhs , G0v, mytime, args=(L, lam, mu, Gamma)  )
-      
+  yout = odeint(ode_rhs , G0v, mytime, args=(L, lam, mu, Gamma)  )   
   axes = dropAxes( yout[-1] )
   
   return axes, yout[-1]
@@ -579,3 +586,14 @@ def set_initial_pars(data_raw):
     if a[i] < 1.:                                                               
       a[i]=1.                                                                   
   return(coords, a,  R)
+  
+def set_tau_cap(a0, lam, mu, gammadot, Gamma):
+    rad0 = np.prod(a0)**(1./3)                                                  
+    tau = lam * mu * rad0 / Gamma                                               
+    cap = lam * mu * gammadot * rad0 / Gamma                                    
+                                                                              
+    t0 = 0                                                                      
+    t1 =  200 * lam / cap *  (4e-9 / Gamma)                                     
+    dt = (t1 - t0) / 500.
+    return [t0,t1,dt,tau,cap]
+ 
