@@ -199,14 +199,7 @@ axes                            = np.zeros( ( num_loop + 1 , 3 ) )
 G_vector                        = np.zeros( ( num_loop + 1 , 6 ) )
 
 
-#points, radii , shape_tens      = dfm.get_body_ellipse( loc_mat[ : , 0:3] ) 
 
-#loc_mat[:, 0:3]                 = points
-#axes[0]                         = radii
-
-#G0                              = np.diag( 1 / radii**2 )
-#G_vector[0]                     = dfm.tens2vec(G0)
-  
 loc_mat_list = []
  
 for tt in range( num_loop ):
@@ -276,28 +269,7 @@ for tt in range( num_loop ):
         
         loc_mat = cell_divide( loc_mat ,  mitotic_cells , tt)
                    
-#   
-#       
-#        #==============================================================================
-#        # Rotate the shape tensor in the direction of the previous shape tensor
-#        #==============================================================================
-#        
-#        #G_vector[tt+1]           = dfm.tens2vec( shape_tens )         
-#
-#        evals, V                    = np.linalg.eigh( dfm.vec2tens( G_vector[tt+1] ) )
-#        
-#        rad2                        = 1.0 / np.sqrt(np.abs( evals ) )
-#        # Sort the radii in the body frame    
-#        sorted_index                = np.argsort(rad2)[::-1]
-#        
-#        # Sort the rotation matrix accordingly
-#        V                           = V[: , sorted_index] 
-#        
-#        G0                          = np.dot( V, np.dot( np.diag(1 / radii**2 ) , V.T ) )
-#        G_vector[tt+1]              = dfm.tens2vec( G0 )
-#     
-#        
-        
+  
 
 end = time.time()
 
