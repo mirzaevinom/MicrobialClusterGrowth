@@ -21,31 +21,36 @@ import time
 lam, mu, gammadot, Gamma, max_stress, p0 = import_constants()
 
 # set the initial axes
-a0 = np.array( [2.316 , 1.361 , 1.304] )
+a0 = np.array( [6.25, 5.1 , 4.0] )
 
 t0 = 0
-t1 = 1
+t1 = 20
 
-t0,t1,dt,tau,cap = dfm.set_tau_cap(a0, lam, mu, gammadot, Gamma)
+dt = 0.1
+#t0,t1,dt,tau,cap = dfm.set_tau_cap(a0, lam, mu, gammadot, Gamma)
 
 #some random points
 #points = 20*( np.random.rand(1000, 3) - 0.5 )
 
-points = np.load( 'sample_cluster.npy' )[:, 0:3]
+#points = np.load( 'deformed_cluster.npy' )[:, 0:3]
+
+points = 10* ( np.random.rand(1000, 3) - 0.5 )
+
+
+#(points, radii , shape_tens) = dfm.get_body_ellipse(points)
+
+#print radii
+
 start = time.time()
-
-(points, radii , shape_tens) = dfm.get_body_ellipse(points)
-print radii
-
 
 # set up the initial shape tensor
 G0 = np.diag( 1 / a0**2 )
 G0v = dfm.tens2vec(G0)
   
-radii , G0v = dfm.deform(t0, t1 , dt , G0v , lam , mu , gammadot , Gamma )
+a1 , G0v , V = dfm.deform(t0, t1 , dt , G0v , lam , mu , gammadot , Gamma )
 
-print radii
-#
+print a1
+
 #radii , G0v = dfm.deform(t0, t1 , dt , G0v , lam , mu , gammadot , Gamma )
 #
 #print radii
@@ -56,7 +61,29 @@ print 'Time elapsed' , round( end - start, 2), 'seconds'
 
 
 plt.close('all')
-fig = plt.figure()
+fig = plt.figure(0)
+
+pts , radii , A = dfm.set_initial_pars(points)
+print radii
+
+
+ax = fig.add_subplot(111, projection='3d')
+
+# plot points
+ax.scatter( pts[:, 0] , pts[:, 1] , pts[:, 2] , color='g' )
+
+# plot ellipsoid
+dfm.plotEllipsoid( radii ,  ax=ax, plotAxes=True )
+
+#Change the view angle and elevation
+ax.view_init( azim=-10, elev=30 )
+
+fig = plt.figure(1)
+
+(points, radii , shape_tens) = dfm.get_body_ellipse(points)
+
+print radii
+
 ax = fig.add_subplot(111, projection='3d')
 
 # plot points

@@ -65,6 +65,10 @@ mlab.view(distance = 75 )
 
 
 
+#==============================================================================
+# Given a floc coordinates computes the fractal dimension of the floc
+#==============================================================================
+
 N = len( loc_mat )
 
 N50 = int( N*0.5  )
@@ -81,19 +85,7 @@ rad_gyr = np.zeros( lastN )
 #cells inside radius of gyration
 cells_gyr = np.zeros( lastN )
 
-#Mass of cells within radius of gyration
-mass_gyr  = np.zeros( lastN )
-
-max_rad  = np.zeros( lastN )
-
-logan_dry  = np.zeros( lastN )
-
-dists = cdist( loc_mat[:, 0:3] ,  loc_mat[:, 0:3] )
-
 for mm in range( N - lastN , N):
-    
-    max_rad[ mm - N + lastN ]    = np.max( dists[ 0:mm , 0:mm ] )
-    logan_dry[ mm - N + lastN ]  = mm
     
     c_mass                       = np.sum( loc_mat[ 0 : mm , 0:3 ] , axis=0 ) / mm
         
@@ -104,8 +96,7 @@ for mm in range( N - lastN , N):
     cells_within                 = np.nonzero( dmm <= ( rad_gyr[ mm - N + lastN ] ) ** 2 )[0]
     cells_gyr[ mm - N + lastN ]  = len( cells_within )
     
-    mass_gyr[ mm - N + lastN ]   = 4*np.pi/3* len( cells_within ) * (0.5**3)     
-
+   
 
 #Radius of gyration fractal dimension
 plt.close( 'all' )
@@ -143,41 +134,3 @@ print 'Time elapsed ',  round( ( end - start ) , 2 ) , ' seconds'
 
 
 print 'Fractal dimension', round( fdim, 2 )
-
-"""
-data_dict = {
-            'init_loc_mat' : init_loc_mat ,
-            'loc_mat' : loc_mat  , 
-            'glu_size' : glu_size ,
-            'glucose' : glucose  ,
-            'vol' : vol ,
-            'dry_vol' : dry_vol ,
-            'max_floc_size' : max_floc_size ,
-            'total_glucose' : total_glucose ,
-            'num_loop' : num_loop  ,
-            'cycle_time' : cycle_time ,
-            'delta_t' : delta_t  , 
-            'delta_x' : delta_x , 
-            'tau_p' : tau_p ,
-            'r_cut' : r_cut ,      
-            'r_overlap' : r_overlap ,  
-            'ksi' : ksi , 
-            'f_strength' : f_strength ,        
-            'diff_con' : diff_con , 
-            'decay_rate' : decay_rate , 
-            'consum_rate' : consum_rate ,
-            'req_glu' : req_glu ,
-            'prod_rate' : prod_rate ,
-            'kappa' : kappa ,
-            'num_gen' : num_gen ,
-            'max_gluc' : max_gluc     
-           }
-
-fname = 'data_' + time.strftime( "%d_%H_%M" , time.localtime() ) + '_janus_results.pkl'  
-output_file = open( os.path.join( 'data_files' , fname ) , 'wb')
-  
-cPickle.dump(data_dict, output_file)
-
-output_file.close()
-
-"""

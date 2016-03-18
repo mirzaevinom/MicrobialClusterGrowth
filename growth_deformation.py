@@ -24,13 +24,14 @@ lam, mu, gammadot, Gamma, max_stress, p0 = import_constants()
 
 t0=0
 t1 = 20
+dt = 0.1
 
 ########
 #Parameters for cell movement and proliferation
 tau_p = 1
-r_cut = 1.5
+r_cut = 1.0
 delta_t = 0.01
-r_overlap = 0.9
+r_overlap = 0.8
 
 #Friction rate induced by viscousity of the ECM
 ksi = 1
@@ -41,12 +42,10 @@ f_strength = 1e-1
 
 ###########
 #Number of generations for to be simulated
-num_gen = 10
+num_gen = 1
 
 #Loop adjustment due to number of generation and generation time of a single cell
 num_loop = int( tau_p * num_gen / delta_t )
-
-
 
 
 #==============================================================================
@@ -71,35 +70,6 @@ tbd = np.unique( np.nonzero(distances < 0.1)[0] )
 
 sphr_shift = np.delete(sphr_shift , tbd , axis=0)
 
-
-
-#==============================================================================
-# location matrix loc_mat  -- coordinate1--coordinate2--coordinate3-- living or 
-# dead -- age after division
-#==============================================================================
-
-
-
-init_loc_mat  = np.array( [ [0 , 0 , 0 , 1 , 0, 0 , 0] , 
-                       [0 , 1 , 0 , 1 , 0.4, 0 , 0] , 
-                       [0 , 0 , 1 , 1 , 0.3, 0 , 0] , 
-                       [1 , 0 , 0 , 1, 0.5, 0 , 0] ] )
-
-
-shape = 60
-scale = 1 / shape
-cycle_time1 = np.random.gamma( shape , scale , 10**4 )
-
-
-scale = 1 / shape
-cycle_time2 = np.random.gamma( shape , scale , 10**4 )
-
-scale = 1 / shape
-cycle_time3 = np.random.gamma( shape , scale , 10**4 )
-
-cycle_time = np.concatenate( ( cycle_time1 , cycle_time2 , cycle_time3 ) )
-
-np.random.shuffle( cycle_time )
 
 
 
@@ -187,13 +157,33 @@ def convex_hull_volume(pts):
                                      tets[:, 2], tets[:, 3]))    
 
 
+
+#==============================================================================
+# location matrix loc_mat  -- coordinate1--coordinate2--coordinate3-- living or 
+# dead -- age after division
+#==============================================================================
+
+
+
+init_loc_mat  = np.array([ [0 , 0 , 0 , 1 , 0, 0 , 0] , 
+                           [0 , 1 , 0 , 1 , 0.4, 0 , 0] , 
+                           [0 , 0 , 1 , 1 , 0.3, 0 , 0] , 
+                           [1 , 0 , 0 , 1, 0.5, 0 , 0] ] )
+
+
+shape = 60
+scale = 1 / shape
+cycle_time = np.random.gamma( shape , scale , 10**5 )
+
+
+np.random.shuffle( cycle_time )
+
+
 vol                             = np.zeros( num_loop )
       
 #init_loc_mat                    = np.load('cluster_10gen.npy')
 
-loc_mat                         = init_loc_mat
-
-
+loc_mat                         = init_loc_mat.copy()
 
 axes                            = np.zeros( ( num_loop + 1 , 3 ) )
 G_vector                        = np.zeros( ( num_loop + 1 , 6 ) )
@@ -215,9 +205,8 @@ for tt in range( num_loop ):
     #   Since new cells were added we need to change the ellipsoid axis 
     #   in the body frame
     #==============================================================================
-               
-    points, radii , shape_tens  = dfm.get_body_ellipse( loc_mat[ : , 0:3] ) 
-    loc_mat[:, 0:3]             = points
+              
+    points, radii , shape_tens  = dfm.set_initial_pars( loc_mat[ : , 0:3] )    
     axes[tt]                    = radii
     G_vector[tt]                = dfm.tens2vec( shape_tens )       
     
@@ -227,15 +216,15 @@ for tt in range( num_loop ):
     #   deform the cell cluster
     #==============================================================================
         
-    dt = dfm.set_tau_cap( axes[tt] , lam, mu, gammadot, Gamma)[2]
-    
-    axes[tt+1] , G_vector[tt+1] = dfm.deform(t0, t1 , dt , G_vector[tt] , lam , mu , gammadot , Gamma )
+
+    axes[tt+1] , G_vector[tt+1] , Rot =  dfm.deform(t0, t1 , dt , G_vector[tt] , lam , mu , gammadot , Gamma )
     
     dfm_frac = axes[ tt+1 ]  / axes[ tt ]
     
-    if np.max( dfm_frac ) < 2 and np.min(dfm_frac)>0.9:
-        loc_mat[: , 0:3] = loc_mat[ : , 0:3] * dfm_frac
-
+    if np.max( dfm_frac ) < 2 and np.min(dfm_frac) > 0.5:
+        rotation = Rot * dfm_frac
+        loc_mat[: , 0:3] = np.inner( points , rotation )
+        
 
     #==============================================================================
     #    move the cells    
@@ -245,25 +234,25 @@ for tt in range( num_loop ):
 
 
     #==============================================================================
-    # Measure the volume at that time
+    #   Measure the volume at that time
     #==============================================================================
     
-    ar_norm = np.linalg.norm( loc_mat[ : , 0:3] , axis=1 )
+    ar_norm         = np.linalg.norm( loc_mat[ : , 0:3] , axis=1 )
     ar_norm[ ar_norm==0 ] = 1
         
-    pts = loc_mat[: , 0:3] + ( loc_mat[: , 0:3].T / ar_norm   * 0.5).T 
+    pts             = loc_mat[: , 0:3] + ( loc_mat[: , 0:3].T / ar_norm   * 0.5 ).T 
     
-    vol[tt]   =  convex_hull_volume( pts ) 
+    vol[tt]         =  convex_hull_volume( pts ) 
           
               
     #==============================================================================
     #     divide the cells
     #==============================================================================
           
-    mitotic_cells1 = np.nonzero( loc_mat[ : , 4 ] > cycle_time[ range( len(loc_mat) ) ] )[0]
-    mitotic_cells2 = np.nonzero( loc_mat[ : , 3]  > 0 )[0]
+    mitotic_cells = np.nonzero( loc_mat[ : , 4 ] > cycle_time[ range( len(loc_mat) ) ] )[0]
+    #mitotic_cells2 = np.nonzero( loc_mat[ : , 3]  > 0 )[0]
     
-    mitotic_cells =  np.intersect1d( mitotic_cells1 , mitotic_cells2 )
+    #mitotic_cells =  np.intersect1d( mitotic_cells1 , mitotic_cells2 )
            
     if len(mitotic_cells) > 0:
         
@@ -278,8 +267,6 @@ print 'Number of cells at the end ' + str( len(loc_mat) )
 print 'Time elapsed ',  round( ( end - start ) , 2 ) , ' seconds'
 
 
-
- 
 
 
 data_dict = {
@@ -297,7 +284,12 @@ data_dict = {
             'r_overlap' : r_overlap ,  
             'ksi' : ksi , 
             'f_strength' : f_strength ,
-            't1' : t1
+            't1' : t1 ,
+            'lam' : lam ,
+            'mu' : mu , 
+            'gammadot' : gammadot,
+            'Gamma' : Gamma, 
+            'max_stress' : max_stress
            }
 
 fname = 'data_' + time.strftime( "%d_%H_%M" , time.localtime() ) + '_deformation.pkl'  

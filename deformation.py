@@ -92,19 +92,8 @@ def vec2skewTens(Vec):
                        [ Vec[4], -Vec[3],  Vec[2]]])
   return skewTens
 
-def dropAxes(Gv):
-  """Find the droplet semi-axes, daxes = [a b c], for the droplet shape 
-  tensor Gv, which is stored in 6x1 column form.  
-  Also find the angle theta (in degrees) between the major axis and the x1 axis
-  (assuming that this axis lies in the 1-2 plane)"""
-  D, V      = np.linalg.eigh(vec2tens(Gv))  # eigenvectors V and eigenvalues D
-  daxesPrim = np.sqrt(1.0/np.abs(D))        # drop axes, as a row vector
-  # sort axis lengths in descending order
-  daxes     = np.sort(daxesPrim)[::-1]      # [::-1] reverses the order 
 
-  return daxes
-
-def eshtens(G, lam, evalsPrim, Evecs):
+def eshtens(G, lam, dropaxes, R):
   """Compute concentration tensors for droplet shape tensor G and viscosity 
   ratio lam. Bm and Cm are the concentration tensors for strain rate and 
   vorticity, and are stored in 6x6 matrix form. G is stored in 3x3 matrix form. 
@@ -112,20 +101,20 @@ def eshtens(G, lam, evalsPrim, Evecs):
 
   #---- Principal values and axes of G ----
   #evalsPrim, Evecs =  np.linalg.eigh(G)
-  evals = np.abs(evalsPrim)  # no negative evals
-  dropaxesPrim = 1./np.sqrt(evals)
+  #evals = np.abs(evalsPrim)  # no negative evals
+  #dropaxesPrim = 1./np.sqrt(evals)
 
   # sort axis lengths in ascending order
-  dropaxes = np.sort(dropaxesPrim)
-  sortOrder = np.argsort(dropaxesPrim)
+  #dropaxes = np.sort(dropaxesPrim)
+  #sortOrder = np.argsort(dropaxesPrim)
  
   # define a rotation by the sorted eigenvectors 
-  RPrim = np.array([Evecs[:,ind] for ind in sortOrder])
-  Rt = np.reshape(RPrim, (3,3))
-  R = np.transpose(Rt) # I guess matlab uses fortan-like indexing of arrays
+  #RPrim = np.array([Evecs[:,ind] for ind in sortOrder])
+  #Rt = np.reshape(RPrim, (3,3))
+  #R = np.transpose(Rt) # I guess matlab uses fortan-like indexing of arrays
 
   #---- Axis ratios (B.85) ----
-  a3,a2,a1 = dropaxes
+  a1, a2, a3 = dropaxes
   C = a3/a1             # C = c/a
   D = a3/a2             # D = c/b
   TINY = 10**(-14)      # tol for using C or D = 0 formulae
@@ -354,7 +343,7 @@ def ode_rhs( Gv , t ,  L, lam, mu, Gamma):
   Iv = tens2vec(I)
 
   # Compute Eshelby tensors 
-  Bm, Cm, Sm, Tm = eshtens(G, lam, evals, V)
+  Bm, Cm, Sm, Tm = eshtens(G, lam, a, V)
 
   # Compute vorticity and deformation rate tensors from velocity gradient
   Llocal  = L    # replace L with L(t) if we want L as a function
@@ -378,6 +367,27 @@ def ode_rhs( Gv , t ,  L, lam, mu, Gamma):
   dgdt = tens2vec(dgdt_tens)
   return dgdt
 
+def dropAxes(Gv):
+  """Find the droplet semi-axes, daxes = [a b c], for the droplet shape 
+  tensor Gv, which is stored in 6x1 column form.  
+  Also find the angle theta (in degrees) between the major axis and the x1 axis
+  (assuming that this axis lies in the 1-2 plane)"""
+  D, V      = np.linalg.eigh(vec2tens(Gv))  # eigenvectors V and eigenvalues D
+  daxesPrim = np.sqrt(1.0/np.abs(D))        # drop axes, as a row vector
+  # sort axis lengths in descending order
+  #daxes     = np.sort(daxesPrim)[::-1]      # [::-1] reverses the order
+  
+  
+  # Sort the radii in the body frame    
+  sorted_index                = np.argsort(daxesPrim)[::-1]
+  
+  daxes                       = daxesPrim[sorted_index]
+
+  # Sort the rotation matrix accordingly
+  V                           = V[: , sorted_index] 
+
+  return daxes , V
+
 
 def deform(t0, t1 , dt, G0v , lam , mu , gammadot , Gamma ):
     
@@ -389,10 +399,10 @@ def deform(t0, t1 , dt, G0v , lam , mu , gammadot , Gamma ):
   #dt = 0.001
   mytime = np.arange(t0 , t1, dt)
   
-  yout = odeint(ode_rhs , G0v, mytime, args=(L, lam, mu, Gamma)  )   
-  axes = dropAxes( yout[-1] )
+  yout = odeint(ode_rhs , G0v, mytime, args=(L, lam, mu, Gamma) , rtol=1e-6 )   
+  axes , V = dropAxes( yout[-1] )
   
-  return axes, yout[-1]
+  return axes, yout[-1] , V
   
   
 def getMinVolEllipse(P, tolerance=0.01):
@@ -531,26 +541,26 @@ def plotEllipsoid(radii , center=np.array([0,0,0]) ,  rotation = np.identity(3) 
 
 
 def set_initial_pars(data_raw):                                                 
-  """ Given an Mx3 array of coordinates, returns (1) the coordinates in the     
-  body frame, (2) the ellipsoid axis lengths, and the (3) rotation that sends   
-  the lab frame into the body frame. This proceeds via a modified POD           
-  (similar to PCA) analysis. Byrne 2011 explains how to deal with flocs         
-  smaller than 3 bacteria; we follow these prescripions.                        
-                                                                                
-  NOTE: Currently the units MUST be in microns. This is because we add 1 to     
-  any axes that are too small.                                                  
-  """                                                                           
-  # obtain the means                                                            
-  mu = np.mean(data_raw,axis=0)                                                 
-  # center the data                                                             
-  data_c = data_raw - mu                                                        
-  if len(data_c) > 2:                                                           
+    """ Given an Mx3 array of coordinates, returns (1) the coordinates in the     
+      body frame, (2) the ellipsoid axis lengths, and the (3) rotation that sends   
+      the body frame into the lab frame. This proceeds via a modified POD           
+      (similar to PCA) analysis. Byrne 2011 explains how to deal with flocs         
+      smaller than 3 bacteria; we follow these prescripions.                        
+                                                                                    
+      NOTE: Currently the units MUST be in microns. This is because we add 1 to     
+      any axes that are too small.                                                  
+      """                                                                           
+    # obtain the means                                                            
+    mu = np.mean(data_raw,axis=0)                                                 
+    # center the data                                                             
+    data_c = data_raw - mu                                                        
+                                                            
     # obtain the eigensystem                                                    
     evals, evecs = np.linalg.eigh(np.dot(data_c.T,data_c))                      
     # rotate the centered data                                                  
     data_rc = np.dot(data_c, evecs)                                             
     # compute the axes lenghts                                                  
-    axes = 2.0*np.std(data_rc,axis=0)                                           
+    axes = 2.5*np.std(data_rc,axis=0)                                           
     # sort the axes lengths                                                     
     indices=np.argsort(axes)[::-1]                                              
     axes_sorted = axes[indices]                                                 
@@ -564,36 +574,14 @@ def set_initial_pars(data_raw):
       #then it includes a reflection and rotation, so get rid of the reflection 
       evecs_sorted = - evecs_sorted                                             
     # asign output                                                              
-    R = evecs_sorted.T                                                          
+    R = evecs_sorted                                                          
     a = axes_sorted                                                             
     # obtain rotated coordinates                                                
-    coords = np.dot(R,data_c.T).T                                               
-  elif len(data_c) == 2:                                                        
-    # there are two bacteria. they will be dist apart, centered at +/- half     
-    # the distance. the axes will be halfdist + 1 along the first, and 1        
-    # along the others                                                          
-    half_dist = np.linalg.norm(data_c[0] - data_c[1]) / 2.0                     
-    coords = np.array([[half_dist, 0.0, 0.0],                                   
-                       [-half_dist, 0.0, 0.0]])                                 
-    a = np.array([half_dist+1.,1.,1.])                                          
-    R = np.identity(3) # placeholder                                            
-  elif len(data_c) == 1:                                                        
-    coords = np.array([[0., 0., 0.]])                                           
-    a = np.array([1.,1.,1.])                                                    
-    R = np.identity(3) # this needs fixing                                      
-  # make sure theat they are all at least one micron                            
-  for i in range(3):                                                            
-    if a[i] < 1.:                                                               
-      a[i]=1.                                                                   
-  return(coords, a,  R)
+    coords = np.inner(data_c, R)
+    
+    evals = 1 / a**2
+    A = np.dot(R, np.dot( np.diag(evals) , R.T )  )                                         
+                                                             
+    return(coords, a,  A)
   
-def set_tau_cap(a0, lam, mu, gammadot, Gamma):
-    rad0 = np.prod(a0)**(1./3)                                                  
-    tau = lam * mu * rad0 / Gamma                                               
-    cap = lam * mu * gammadot * rad0 / Gamma                                    
-                                                                              
-    t0 = 0                                                                      
-    t1 =  200 * lam / cap *  (4e-9 / Gamma)                                     
-    dt = (t1 - t0) / 500.
-    return [t0,t1,dt,tau,cap]
  
