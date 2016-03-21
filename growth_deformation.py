@@ -42,7 +42,7 @@ f_strength = 1e-1
 
 ###########
 #Number of generations for to be simulated
-num_gen = 1
+num_gen = 20
 
 #Loop adjustment due to number of generation and generation time of a single cell
 num_loop = int( tau_p * num_gen / delta_t )
@@ -69,8 +69,6 @@ distances = np.tril( distances ) + np.triu(np.ones( (len( sphr_shift ) , len( sp
 tbd = np.unique( np.nonzero(distances < 0.1)[0] )
 
 sphr_shift = np.delete(sphr_shift , tbd , axis=0)
-
-
 
 
 
@@ -249,10 +247,10 @@ for tt in range( num_loop ):
     #     divide the cells
     #==============================================================================
           
-    mitotic_cells = np.nonzero( loc_mat[ : , 4 ] > cycle_time[ range( len(loc_mat) ) ] )[0]
-    #mitotic_cells2 = np.nonzero( loc_mat[ : , 3]  > 0 )[0]
+    mitotic_cells1 = np.nonzero( loc_mat[ : , 4 ] > cycle_time[ range( len(loc_mat) ) ] )[0]
+    mitotic_cells2 = np.nonzero( loc_mat[ : , 3]  > 0 )[0]
     
-    #mitotic_cells =  np.intersect1d( mitotic_cells1 , mitotic_cells2 )
+    mitotic_cells =  np.intersect1d( mitotic_cells1 , mitotic_cells2 )
            
     if len(mitotic_cells) > 0:
         
@@ -265,8 +263,6 @@ end = time.time()
 print 'Number of cells at the end ' + str( len(loc_mat) )
 
 print 'Time elapsed ',  round( ( end - start ) , 2 ) , ' seconds'
-
-
 
 
 data_dict = {
@@ -292,7 +288,8 @@ data_dict = {
             'max_stress' : max_stress
            }
 
-fname = 'data_' + time.strftime( "%d_%H_%M" , time.localtime() ) + '_deformation.pkl'  
+
+fname = 'data_' + time.strftime( "%m_%d_%H_%M" , time.localtime() ) + '_deformation.pkl'  
 output_file = open( os.path.join( 'data_files' , fname ) , 'wb')
   
 cPickle.dump(data_dict, output_file)

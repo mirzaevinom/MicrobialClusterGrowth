@@ -21,23 +21,27 @@ import time
 lam, mu, gammadot, Gamma, max_stress, p0 = import_constants()
 
 # set the initial axes
-a0 = np.array( [6.25, 5.1 , 4.0] )
+a0 = np.array( [15.0, 14.0 , 13.0] )
 
 t0 = 0
 t1 = 20
 
-dt = 0.1
-#t0,t1,dt,tau,cap = dfm.set_tau_cap(a0, lam, mu, gammadot, Gamma)
+dt = 1e-1
+
 
 #some random points
-#points = 20*( np.random.rand(1000, 3) - 0.5 )
 
-#points = np.load( 'deformed_cluster.npy' )[:, 0:3]
+points = 10 * np.random.rand(10**3, 3)
+points  = points - np.mean(points , axis=0)
+dists = np.sum( points**2 , axis=1)
+points = points[dists<25]
+points = points * np.array([ 3 , 2 , 1 ]) 
 
-points = 10* ( np.random.rand(1000, 3) - 0.5 )
+
+points = np.load( 'sample_cluster.npy' )[:, 0:3]
 
 
-#(points, radii , shape_tens) = dfm.get_body_ellipse(points)
+#(points, radii , shape_tens) = dfm.get_body_ellipse( points )
 
 #print radii
 
@@ -50,6 +54,9 @@ G0v = dfm.tens2vec(G0)
 a1 , G0v , V = dfm.deform(t0, t1 , dt , G0v , lam , mu , gammadot , Gamma )
 
 print a1
+print a1/a0
+
+print np.prod(a1) / np.prod(a0)
 
 #radii , G0v = dfm.deform(t0, t1 , dt , G0v , lam , mu , gammadot , Gamma )
 #
@@ -60,6 +67,7 @@ end = time.time()
 print 'Time elapsed' , round( end - start, 2), 'seconds'
 
 
+"""
 plt.close('all')
 fig = plt.figure(0)
 
@@ -95,7 +103,6 @@ dfm.plotEllipsoid( radii ,  ax=ax, plotAxes=True )
 #Change the view angle and elevation
 ax.view_init( azim=-10, elev=30 )
 
-"""
 
 mlab.close(all=True)
 mlab.figure( size=(600, 600) )

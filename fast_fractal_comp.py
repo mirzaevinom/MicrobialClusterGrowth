@@ -34,11 +34,6 @@ pkl_file.close()
 locals().update( data_dict )
 
 
-#==============================================================================
-#  Visualization   
-#==============================================================================
-
-
 def hex2color(s):
     
     "Convert hex string (like html uses, eg, #efefef ) to a r,g,b tuple"
@@ -50,7 +45,85 @@ def hex2color(s):
 
     return r,g,b
     
+
+
+def fractal_dimension(loc_mat):
+    
+    """
+    Given a floc coordinates computes the fractal dimension of the floc"""
+    
+    N = len( loc_mat )
+    
+    c_mass = np.mean( loc_mat[: , 0:3] , axis=0 )
+    
+    loc_mat[ : , 0:3]  = loc_mat[ : , 0:3] - c_mass
+    dists = np.sum( (loc_mat[: , 0:3] )**2 , axis=1 )      
+  
+    lastN = int( N*0.95  )
+   
+    
+    #Radius of gyration
+    rad_gyr = np.zeros( lastN )
+    
+    #cells inside radius of gyration
+    cells_gyr = np.zeros( lastN )
+    
+    for mm in range( N - lastN , N):
+        
+        #c_mass                       = np.sum( loc_mat[ 0 : mm , 0:3 ] , axis=0 ) / mm
+            
+        rad_gyr[ mm - N + lastN ]    = np.sum( 1 / mm  * dists[0:mm] )**(1/2)
+        
+        #dmm                          = np.sum( ( loc_mat[:, 0:3] - c_mass )**2 , axis=1 )
+        
+        cells_within                 = np.nonzero( dists <=  ( rad_gyr[ mm - N + lastN ] )**2  )[0]
+        
+        cells_gyr[ mm - N + lastN ]  = len( cells_within )
+        
+    
+    lin_fit     = np.polyfit(  np.log( rad_gyr) , np.log( cells_gyr ) , 1 )
+     
+    return (rad_gyr, cells_gyr, lin_fit)
  
+
+def remove_overlap(loc_mat, r_overlap):
+    
+    """
+    This code deletes overlapping cells """
+    
+    distances   = cdist( loc_mat[:, 0:3] ,  loc_mat[:, 0:3] ) + 4 * np.identity( len( loc_mat ) ) 
+    mydist      = distances + np.triu( np.ones_like( distances ) )
+    
+    ddd1        = np.asanyarray( np.nonzero( mydist < r_overlap ) )
+    ddd         = np.unique( np.max(ddd1, axis=0) )
+
+    if len(ddd)>0:
+        loc_mat         = np.delete(loc_mat , ddd, axis=0 )
+        
+    return loc_mat
+
+
+fdim_list = []
+cell_list = []
+for nn in range( 10 , len(loc_mat_list) ):
+    
+    loc_mat = loc_mat_list[nn][0]
+    fdim    = fractal_dimension(loc_mat)[2][0]
+    fdim_list.append( fdim )
+    
+    cell_list.append( len(loc_mat) )
+    
+#==============================================================================
+#  Visualization   
+#==============================================================================
+plt.close( 'all' )
+
+plt.figure(0)
+
+plt.plot( cell_list , fdim_list , linewidth=2 , color='blue')
+
+ 
+loc_mat = loc_mat_list[20][0]
 
 mlab.close(all=True)
 mlab.figure(  bgcolor=(1,1,1) )
@@ -63,46 +136,11 @@ mlab.points3d( loc_mat[:, 0], loc_mat[:, 1], loc_mat[:, 2] ,
                
 mlab.view(distance = 75 )
 
-
-
-#==============================================================================
-# Given a floc coordinates computes the fractal dimension of the floc
-#==============================================================================
-
-N = len( loc_mat )
-
-N50 = int( N*0.5  )
-N75 = int( N*0.75 )
-N90 = int( N*0.9  )
-N95 = int( N*0.95 )
-
-
-lastN = N50
-
-#Radius of gyration
-rad_gyr = np.zeros( lastN )
-
-#cells inside radius of gyration
-cells_gyr = np.zeros( lastN )
-
-for mm in range( N - lastN , N):
-    
-    c_mass                       = np.sum( loc_mat[ 0 : mm , 0:3 ] , axis=0 ) / mm
-        
-    rad_gyr[ mm - N + lastN ]    = np.sum( 1 / mm  * ( loc_mat[ 0 : mm  , 0:3] - c_mass )** 2 )**(1/2)
-    
-    dmm                          = np.sum( ( loc_mat[:, 0:3] - c_mass )**2 , axis=1 )
-    
-    cells_within                 = np.nonzero( dmm <= ( rad_gyr[ mm - N + lastN ] ) ** 2 )[0]
-    cells_gyr[ mm - N + lastN ]  = len( cells_within )
-    
-   
-
 #Radius of gyration fractal dimension
-plt.close( 'all' )
+
 fig = plt.figure(1)
 
-lin_fit     = np.polyfit(  np.log( rad_gyr) , np.log( cells_gyr ) , 1 )
+rad_gyr, cells_gyr, lin_fit = fractal_dimension( loc_mat )
 func_fit    = np.poly1d( lin_fit )
 
 fdim        = lin_fit[0]
@@ -125,7 +163,11 @@ ax.text(0.01 , 0.9 , 'Slope=$'+str( round( fdim , 2) )+'$' ,
         color='black' , fontsize=16)
 
 
+plt.figure(2)
 
+plt.plot(axes)
+plt.xlabel('Time')
+plt.ylabel('Axes length')
 end = time.time()
 
 print 'Number of cells at the end ' + str( len(loc_mat) )
