@@ -21,7 +21,7 @@ import time
 lam, mu, gammadot, Gamma, max_stress, p0 = import_constants()
 
 # set the initial axes
-a0 = np.array( [15.0, 14.0 , 13.0] )
+a0 = np.array( [ 10.0, 10.0 , 10.0 ] )
 
 t0 = 0
 t1 = 20
@@ -58,6 +58,13 @@ print a1/a0
 
 print np.prod(a1) / np.prod(a0)
 
+axes = dfm.evolve(t0, t1 , dt , G0v , lam , mu , gammadot , Gamma )
+
+plt.close('all')
+
+plt.figure(3)
+
+plt.plot(axes)
 #radii , G0v = dfm.deform(t0, t1 , dt , G0v , lam , mu , gammadot , Gamma )
 #
 #print radii
@@ -68,7 +75,6 @@ print 'Time elapsed' , round( end - start, 2), 'seconds'
 
 
 """
-plt.close('all')
 fig = plt.figure(0)
 
 pts , radii , A = dfm.set_initial_pars(points)

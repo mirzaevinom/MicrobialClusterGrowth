@@ -3,15 +3,15 @@
 #Also see p.677 Wetzel paper
 
 # viscosity ratio droplet/matrix, unitless
-lam = 50                                       
+lam = 25                                       
 
 # matrix viscosity,  Pa s=(N s)/(m ^2)
 mu_si = 0.01                                    
 
 # shear rate, 1/s
-# for shear rates greater than 50 make absolute tolerance in odeint more strict
+# for shear rates greater than 50, make absolute tolerance in odeint more strict
  
-gammadot_si = 50                              
+gammadot_si = 1                              
 
 # interfacial tension, N/m
 # that is what Eric Wetzel uses in his simulations

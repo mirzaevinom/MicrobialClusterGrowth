@@ -298,35 +298,26 @@ def ode_rhs( Gv , t ,  L, lam, mu, Gamma):
 
     # Compute appropriate elliptic integrals of the first (ellipk) and second 
     # (ellipe) kinds, store them in P_hat (3x1 array)
+    # There is no R because later it is going to be canceled with the one in eq.16
 
-    P_hat = np.zeros(( 3 , 3) )			  
-    if a[1] > a[2]:
-        E = sp.ellipe(1-(a[2]/a[1])**2)
-        P_hat[0,0] = E/a[2]
-    else:
-        E = sp.ellipe(1-(a[1]/a[2])**2)
-        P_hat[0,0] = E/a[1]
+    P_hat = np.zeros( ( 3 , 3) )			  
+    
+    E = sp.ellipe(1-(a[2]/a[1])**2)
+    P_hat[0,0] = E/a[2]
+   
+    E = sp.ellipe(1-(a[2]/a[0])**2)
+    P_hat[1,1] = E/a[2] 
 
-    if a[0] > a[2]:
-        E = sp.ellipe(1-(a[2]/a[0])**2)
-        P_hat[1,1] = E/a[2]
-    else:
-        E = sp.ellipe(1-(a[0]/a[2])**2)
-        P_hat[1,1] = E/a[0]
+    E = sp.ellipe(1-(a[1]/a[0])**2)
+    P_hat[2,2] = E/a[1]
 
-    if a[1] > a[0]:
-        E = sp.ellipe(1-(a[0]/a[1])**2)
-        P_hat[2,2] = E/a[0]
-    else:
-        E = sp.ellipe(1-(a[1]/a[0])**2)
-        P_hat[2,2] = E/a[1]
 
     # Modify the elliptic integrals ( scalar correction factor eq.25 )
     q = ( 40.0 * ( lam + 1 ) ) / ( 19.0 * lam + 16 )
     
     # Compute the interfacial tension in the direction of the droplet axes eq.12-16
     
-    # There is no R in the denominator because it got canceled with the one in P_hat
+    # There is no R in the denominator because it got canceled with the one in P_hat, see eq.16
     P_hat = q * P_hat * ( ( 2 * Gamma ) / ( np.pi * mu) )
 
     P = np.dot( V , np.dot( P_hat , V.T ) )
@@ -348,12 +339,12 @@ def ode_rhs( Gv , t ,  L, lam, mu, Gamma):
     Dv = tens2vec(D)
 
     # Set an array to help with contracted-notation (not sure what this does)
-    R4  = np.diag(np.array([1, 1, 1, 2, 2, 2]))
+    R4  = np.array([1, 1, 1, 2, 2, 2])
 
     # "Inclusion velocity gradient"
-    Lstar = W + vec2tens(Bm.dot(R4.dot(Dv))) + \
-              vec2skewTens(Cm.dot(R4.dot(Dv))) + \
-              vec2tens( Sm.dot( R4.dot( Bm.dot( R4.dot( Pv ) ) ) ) )
+    Lstar = W + vec2tens( Bm.dot(R4 * Dv) ) + \
+              vec2skewTens( Cm.dot( R4 * Dv ) ) + \
+              vec2tens( Sm.dot( R4 * ( Bm.dot( R4*Pv  ) ) ) )
     
     Lstart = np.transpose(Lstar)
 
@@ -398,7 +389,7 @@ def deform(t0, t1 , dt, G0v , lam , mu , gammadot , Gamma ):
     mytime = np.arange(t0 , t1 + dt, dt)
   
     opt = odeint(ode_rhs , G0v, mytime, args=(L, lam, mu, Gamma) , rtol=1e-6, 
-                 atol=1e-6, full_output=True , printmessg=True )   
+                 atol=1e-6, full_output=True , printmessg=False )   
     
     if opt[1]['message']=='Integration successful.':
   
@@ -409,6 +400,30 @@ def deform(t0, t1 , dt, G0v , lam , mu , gammadot , Gamma ):
     axes , V = dropAxes( fin_yout )
   
     return axes, fin_yout , V
+
+def evolve(t0, t1 , dt, G0v , lam , mu , gammadot , Gamma ):
+    
+    # set up the velocity gradient L defined by du/dy=gammadot
+    L = np.zeros([3,3])
+    L[0,1] = gammadot
+ 
+    mytime = np.arange(t0 , t1 + dt, dt)
+  
+    opt = odeint(ode_rhs , G0v, mytime, args=(L, lam, mu, Gamma) , rtol=1e-6, 
+                 atol=1e-6, full_output=True , printmessg=False )   
+    
+    if opt[1]['message']=='Integration successful.':
+  
+      yout = opt[0]
+    else:
+      raise Exception('Integration did not converge')
+
+    N = len( yout )
+    axes = np.zeros( (N, 3) )
+    for mm in range(N):
+        axes[mm] = dropAxes( yout[mm] )[0]
+
+    return axes
   
   
 def getMinVolEllipse(P, tolerance=0.01):

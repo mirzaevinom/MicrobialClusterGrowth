@@ -123,7 +123,7 @@ plt.figure(0)
 plt.plot( cell_list , fdim_list , linewidth=2 , color='blue')
 
  
-loc_mat = loc_mat_list[20][0]
+loc_mat = loc_mat_list[-1][0]
 
 mlab.close(all=True)
 mlab.figure(  bgcolor=(1,1,1) )
@@ -165,7 +165,7 @@ ax.text(0.01 , 0.9 , 'Slope=$'+str( round( fdim , 2) )+'$' ,
 
 plt.figure(2)
 
-plt.plot(axes)
+plt.plot(axes[1000:1100])
 plt.xlabel('Time')
 plt.ylabel('Axes length')
 end = time.time()
