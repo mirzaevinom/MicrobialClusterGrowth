@@ -18,19 +18,59 @@ import time
 """
 
 # import the constants
-lam, mu, gammadot, Gamma, max_stress, p0 = import_constants()
+lam, mu, gammadot, Gamma= import_constants()
 
 # set the initial axes
-a0 = np.array( [ 10.0, 10.0 , 10.0 ] )
+a0 = np.array( [ 5.0, 5.0 , 5.0 ] )
+#a0 = np.sort( 10*np.random.rand(3) )[::-1]
 
 t0 = 0
 t1 = 20
 
-dt = 1e-1
+dt = 1e-1 / gammadot
+
+start = time.time()
+
+# set up the initial shape tensor
+G0 = np.diag( 1.0 / a0**2 )
+G0v = dfm.tens2vec(G0)
+
+a1 = dfm.deform(t0, t1 , dt , G0v , lam , mu , gammadot , Gamma )[0]
+
+print a1
+print a1/a0
+
+print np.prod(a1) / np.prod(a0)
+
+end = time.time()
+
+print 'Time elapsed' , round( end - start, 2), 'seconds'
 
 
-#some random points
+axes = dfm.evolve(t0, t1 , dt , G0v , lam , mu , gammadot , Gamma )
 
+mean_deform = np.mean( np.sum( np.abs(1 - axes / a0 ) , axis=1 ) / 2 )
+
+print 'Mean deformation', round(mean_deform, 2)*100, 'percent'
+
+max_deform = np.max( np.sum( np.abs(1 - axes / a0 ) , axis=1 ) / 2 )
+
+print 'Max deformation', round(max_deform, 2)*100, 'percent'
+
+
+plt.close('all')
+
+plt.figure(3)
+
+plt.plot(axes)
+#plt.plot( np.prod( axes , axis=1 ) )
+#radii , G0v = dfm.deform(t0, t1 , dt , G0v , lam , mu , gammadot , Gamma )
+#
+#print radii
+
+
+
+"""
 points = 10 * np.random.rand(10**3, 3)
 points  = points - np.mean(points , axis=0)
 dists = np.sum( points**2 , axis=1)
@@ -41,40 +81,6 @@ points = points * np.array([ 3 , 2 , 1 ])
 points = np.load( 'sample_cluster.npy' )[:, 0:3]
 
 
-#(points, radii , shape_tens) = dfm.get_body_ellipse( points )
-
-#print radii
-
-start = time.time()
-
-# set up the initial shape tensor
-G0 = np.diag( 1 / a0**2 )
-G0v = dfm.tens2vec(G0)
-  
-a1 , G0v , V = dfm.deform(t0, t1 , dt , G0v , lam , mu , gammadot , Gamma )
-
-print a1
-print a1/a0
-
-print np.prod(a1) / np.prod(a0)
-
-axes = dfm.evolve(t0, t1 , dt , G0v , lam , mu , gammadot , Gamma )
-
-plt.close('all')
-
-plt.figure(3)
-
-plt.plot(axes)
-#radii , G0v = dfm.deform(t0, t1 , dt , G0v , lam , mu , gammadot , Gamma )
-#
-#print radii
-
-end = time.time()
-
-print 'Time elapsed' , round( end - start, 2), 'seconds'
-
-
-"""
 fig = plt.figure(0)
 
 pts , radii , A = dfm.set_initial_pars(points)
@@ -140,5 +146,4 @@ animation = mpy.VideoClip(make_frame, duration=duration)
 vf_name = 'deformation.mp4'
 
 animation.write_videofile( vf_name , fps = num_fps)
-
 """

@@ -20,18 +20,19 @@ import time, cPickle, os
 start = time.time()
 
 # import the constants
-lam, mu, gammadot, Gamma, max_stress, p0 = import_constants()
+lam, mu, gammadot, Gamma= import_constants()
 
 t0=0
 t1 = 20
-dt = 0.1
+
+dt = 1e-1 / gammadot
 
 ########
 #Parameters for cell movement and proliferation
 tau_p = 1
 r_cut = 1.0
 delta_t = 0.01
-r_overlap = 0.8
+r_overlap = 0.9
 
 #Friction rate induced by viscousity of the ECM
 ksi = 1
@@ -42,7 +43,7 @@ f_strength = 1e-1
 
 ###########
 #Number of generations for to be simulated
-num_gen = 10
+num_gen = 20
 
 #Loop adjustment due to number of generation and generation time of a single cell
 num_loop = int( tau_p * num_gen / delta_t )
@@ -284,8 +285,7 @@ data_dict = {
             'lam' : lam ,
             'mu' : mu , 
             'gammadot' : gammadot,
-            'Gamma' : Gamma, 
-            'max_stress' : max_stress
+            'Gamma' : Gamma
            }
 
 

@@ -5,7 +5,10 @@ import scipy.special as sp
 from scipy.integrate import odeint
 
 from mpl_toolkits.mplot3d import Axes3D
+
 import matplotlib.pyplot as plt
+
+
  
 """
 ----- Transcribed from TJW Code -----
@@ -246,6 +249,8 @@ def eshtens(G, lam, dropaxes, R):
     
     #---- Rotate Eshelby tensors into laboratory coordinates ----
     Qi = np.linalg.inv(Q)
+  
+    
     Sm = Q.dot(Sm.dot(R4.dot(Qi.dot(Id4))))  # Eshelby tensor in lab coords.
     Tm = Qu.dot(Tm.dot(R4.dot(Qi.dot(Id4)))) # alternate tensor in lab coords
     
@@ -334,7 +339,10 @@ def ode_rhs( Gv , t ,  L, lam, mu, Gamma):
     # Compute vorticity and deformation rate tensors from velocity gradient
     Llocal  = L    # replace L with L(t) if we want L as a function
     Ltlocal = np.transpose(Llocal)
+    
+    #Vorticity, rotation tensor
     W = (Llocal-Ltlocal)/2.0
+    # Deformation or Strain rate tensor
     D = (Llocal+Ltlocal)/2.0
     Dv = tens2vec(D)
 
@@ -359,15 +367,11 @@ def ode_rhs( Gv , t ,  L, lam, mu, Gamma):
 
 def dropAxes(Gv):
     """Find the droplet semi-axes, daxes = [a b c], for the droplet shape 
-    tensor Gv, which is stored in 6x1 column form.  
-    Also find the angle theta (in degrees) between the major axis and the x1 axis
-    (assuming that this axis lies in the 1-2 plane)"""
+    tensor Gv, which is stored in 6x1 column form. """
     
     D, V      = np.linalg.eigh(vec2tens(Gv))  # eigenvectors V and eigenvalues D
     daxesPrim = np.sqrt(1.0/np.abs(D))        # drop axes, as a row vector
-    # sort axis lengths in descending order
-    #daxes     = np.sort(daxesPrim)[::-1]      # [::-1] reverses the order
-  
+   
   
     # Sort the radii in the body frame    
     sorted_index                = np.argsort(daxesPrim)[::-1]
@@ -387,9 +391,9 @@ def deform(t0, t1 , dt, G0v , lam , mu , gammadot , Gamma ):
     L[0,1] = gammadot
  
     mytime = np.arange(t0 , t1 + dt, dt)
-  
+    
     opt = odeint(ode_rhs , G0v, mytime, args=(L, lam, mu, Gamma) , rtol=1e-6, 
-                 atol=1e-6, full_output=True , printmessg=False )   
+                 atol=1e-8, full_output=True , printmessg=False )   
     
     if opt[1]['message']=='Integration successful.':
   
@@ -408,9 +412,9 @@ def evolve(t0, t1 , dt, G0v , lam , mu , gammadot , Gamma ):
     L[0,1] = gammadot
  
     mytime = np.arange(t0 , t1 + dt, dt)
-  
+    #print dropAxes(G0v)[0]
     opt = odeint(ode_rhs , G0v, mytime, args=(L, lam, mu, Gamma) , rtol=1e-6, 
-                 atol=1e-6, full_output=True , printmessg=False )   
+                 atol=1e-8, full_output=True , printmessg=False )   
     
     if opt[1]['message']=='Integration successful.':
   
@@ -419,6 +423,7 @@ def evolve(t0, t1 , dt, G0v , lam , mu , gammadot , Gamma ):
       raise Exception('Integration did not converge')
 
     N = len( yout )
+    #print dropAxes(yout[0])
     axes = np.zeros( (N, 3) )
     for mm in range(N):
         axes[mm] = dropAxes( yout[mm] )[0]
@@ -509,8 +514,8 @@ def get_body_ellipse(points):
 
 
    
-def plotEllipsoid(radii , center=np.array([0,0,0]) ,  rotation = np.identity(3) , 
-                  ax=None, plotAxes=False, cageColor='b', cageAlpha=0.2):
+def plotEllipsoid( radii , center=np.array( [0,0,0] ) ,  rotation = np.identity(3) , 
+                   ax=None, plotAxes=False, cageColor='b', cageAlpha=0.2):
 
     """Given axis length of an ellipsoid, plot the ellipsoid in body frame.
     
@@ -607,5 +612,5 @@ def set_initial_pars(data_raw):
     A = np.dot(R, np.dot( np.diag(evals) , R.T )  )                                         
                                                              
     return(coords, a,  A)
-  
+
  

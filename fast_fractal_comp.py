@@ -9,6 +9,7 @@ Created on Wed Jan 27 2016
 from __future__ import division
 from scipy.spatial.distance import cdist
 from scipy.spatial import ConvexHull
+from scipy.optimize import curve_fit
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -18,17 +19,17 @@ import mayavi.mlab as mlab
 start = time.time()
 
 
-
 fnames = []
 
 for file in os.listdir("data_files"):
     if file.endswith("deformation.pkl"):
         fnames.append(file)
 
-pkl_file = open(os.path.join( 'data_files' , fnames[-1] ), 'rb')
+pkl_file = open(os.path.join( 'data_files' , fnames[-1] ) , 'rb')
 
 data_dict = cPickle.load( pkl_file )        
 pkl_file.close()
+
 
 #Load all the parameters and simulation results from the pkl file
 locals().update( data_dict )
@@ -165,14 +166,80 @@ ax.text(0.01 , 0.9 , 'Slope=$'+str( round( fdim , 2) )+'$' ,
 
 plt.figure(2)
 
-plt.plot(axes[1000:1100])
-plt.xlabel('Time')
-plt.ylabel('Axes length')
+# Since there is growth this really doesn't make sense, but anyway
+deform_rate = np.sum( np.abs( 1 -  axes[1:] / axes[:-1]) , axis=1 ) / 2
+
+mean_deform = np.mean( deform_rate )
+
+print 'Mean deformation', round(mean_deform, 2)*100, 'percent'
+
+
+plt.plot( axes )
+
+plt.xlabel( 'Time' )
+plt.ylabel( 'Axes length' )
 end = time.time()
 
-print 'Number of cells at the end ' + str( len(loc_mat) )
 
+plt.figure(3)
+
+def func(x, a, b):
+    return a * x**b
+    
+    
+bincount = np.bincount( np.int_( loc_mat[: , -1] ) )
+num_cells = np.cumsum( bincount )
+
+xdata = delta_t * np.arange( len( num_cells) )
+
+
+#xdata = np.linspace(0, num_loop * delta_t, num_loop)
+
+popt, pcov = curve_fit(func, xdata, num_cells)     
+
+print '[a, b]=', popt      
+ydata= func( xdata, popt[0], popt[1])
+plt.plot( xdata , ydata, linewidth=2, color='red')    
+plt.plot( xdata , num_cells , linewidth=2, color='blue')
+plt.xlabel( 'Time' )
+plt.ylabel( 'Aggregate volume' )
+
+
+plt.figure(4)
+
+lambda_cells = []
+
+for nn in range(len(fnames)):
+
+    pkl_file = open(os.path.join( 'data_files' , fnames[nn] ) , 'rb')
+
+    data_dict = cPickle.load( pkl_file )
+    
+    a = data_dict['lam']
+    b = len( data_dict['loc_mat'] )
+
+    lambda_cells.append( [a, b] )         
+        
+    pkl_file.close()
+    
+lambda_cells = np.array( lambda_cells )
+
+sorted_index = np.argsort( lambda_cells[:, 0] )
+
+lambda_cells = lambda_cells[ sorted_index ]
+
+
+plt.plot( lambda_cells[:, 0] , lambda_cells[:, 1] , linewidth=1, linestyle=':', marker='o', markersize=10)
+plt.xlabel( 'Viscosity ratio' )
+plt.ylabel( 'Cell count after 20 hours' )
+
+end = time.time()
+
+
+print 'Number of cells at the end ' + str( len(loc_mat) )
+print 'Fractal dimension', round( fdim, 2 )
+print 'Viscosity ratio', lam
+print 'Max volume', round( np.max( vol ) , 2 )
 print 'Time elapsed ',  round( ( end - start ) , 2 ) , ' seconds'
 
 
-print 'Fractal dimension', round( fdim, 2 )
