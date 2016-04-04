@@ -12,7 +12,7 @@ from constants import import_constants
 
 import numpy as np
 
-import time
+import time, cPickle, os
 
 """ Test the core functions of deformation.py
 """
@@ -21,8 +21,8 @@ import time
 lam, mu, gammadot, Gamma= import_constants()
 
 # set the initial axes
-a0 = np.array( [ 5.0, 5.0 , 5.0 ] )
-#a0 = np.sort( 10*np.random.rand(3) )[::-1]
+a0 = np.array( [ 10.0, 10.0 , 10.0 ] )
+#a0 = np.sort( 1 + 10*np.random.rand(3) )[::-1]
 
 t0 = 0
 t1 = 20
@@ -30,24 +30,38 @@ t1 = 20
 dt = 1e-1 / gammadot
 
 start = time.time()
+# set up the matrix velocity gradient L defined by du/dy=gammadot
+L = np.zeros( [3,3] )
+
+L[0,1] = gammadot/3
+L[1, 2] = gammadot/3
+L[0, 2] = gammadot/3
+
+#Elongational flow
+#L[0,0] = 1*gammadot
+#L[1, 1] = -gammadot
+#L[2, 2] = -gammadot
 
 # set up the initial shape tensor
 G0 = np.diag( 1.0 / a0**2 )
-G0v = dfm.tens2vec(G0)
+G0v = dfm.tens2vec( G0 )
 
-a1 = dfm.deform(t0, t1 , dt , G0v , lam , mu , gammadot , Gamma )[0]
+a1 = dfm.deform(t0, t1 , dt , G0v , lam , mu , L , Gamma )[0]
 
 print a1
 print a1/a0
-
-print np.prod(a1) / np.prod(a0)
+aaa     = np.prod( a1 ) / np.prod( a0 )
+vol_err = round( 100 * np.abs( 1- aaa ) , 6 )
+print 'Error in volume', vol_err, 'percent'
 
 end = time.time()
 
 print 'Time elapsed' , round( end - start, 2), 'seconds'
 
 
-axes = dfm.evolve(t0, t1 , dt , G0v , lam , mu , gammadot , Gamma )
+axes = dfm.evolve(t0, t1 , dt , G0v , lam , mu , L , Gamma )
+
+taylor_deform  = np.max( ( axes[:, 0] - axes[:, 2] ) / ( axes[:, 0] + axes[:, 2]) )
 
 mean_deform = np.mean( np.sum( np.abs(1 - axes / a0 ) , axis=1 ) / 2 )
 
@@ -56,7 +70,7 @@ print 'Mean deformation', round(mean_deform, 2)*100, 'percent'
 max_deform = np.max( np.sum( np.abs(1 - axes / a0 ) , axis=1 ) / 2 )
 
 print 'Max deformation', round(max_deform, 2)*100, 'percent'
-
+print 'Max Taylor deformation', taylor_deform
 
 plt.close('all')
 
@@ -68,17 +82,22 @@ plt.plot(axes)
 #
 #print radii
 
+pkl_file = open(os.path.join( 'data_files' ,'cellcount_0.pkl' ) , 'rb')
 
+results = cPickle.load( pkl_file )        
+
+pkl_file.close()
 
 """
-points = 10 * np.random.rand(10**3, 3)
+
+points = 10*np.random.rand(10**4, 3)
 points  = points - np.mean(points , axis=0)
 dists = np.sum( points**2 , axis=1)
 points = points[dists<25]
-points = points * np.array([ 3 , 2 , 1 ]) 
+points = points * np.array([ 5 , 2 , 1 ]) 
 
 
-points = np.load( 'sample_cluster.npy' )[:, 0:3]
+points = np.load( 'acluster.npy' )[:, 0:3]
 
 
 fig = plt.figure(0)
@@ -97,6 +116,7 @@ dfm.plotEllipsoid( radii ,  ax=ax, plotAxes=True )
 
 #Change the view angle and elevation
 ax.view_init( azim=-10, elev=30 )
+
 
 fig = plt.figure(1)
 

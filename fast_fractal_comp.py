@@ -11,6 +11,7 @@ from scipy.spatial.distance import cdist
 from scipy.spatial import ConvexHull
 from scipy.optimize import curve_fit
 
+import deformation as dfm
 import numpy as np
 import matplotlib.pyplot as plt
 import time, os, cPickle
@@ -25,13 +26,13 @@ for file in os.listdir("data_files"):
     if file.endswith("deformation.pkl"):
         fnames.append(file)
 
-pkl_file = open(os.path.join( 'data_files' , fnames[-1] ) , 'rb')
+pkl_file = open(os.path.join( 'data_files' , fnames[1] ) , 'rb')
 
 data_dict = cPickle.load( pkl_file )        
 pkl_file.close()
 
-
 #Load all the parameters and simulation results from the pkl file
+
 locals().update( data_dict )
 
 
@@ -136,6 +137,7 @@ mlab.points3d( loc_mat[:, 0], loc_mat[:, 1], loc_mat[:, 2] ,
                resolution=20, color = cell_color  )
                
 mlab.view(distance = 75 )
+mlab.savefig('sample_floc.png')
 
 #Radius of gyration fractal dimension
 
@@ -173,11 +175,15 @@ mean_deform = np.mean( deform_rate )
 
 print 'Mean deformation', round(mean_deform, 2)*100, 'percent'
 
-
-plt.plot( axes )
-
-plt.xlabel( 'Time' )
-plt.ylabel( 'Axes length' )
+myt = delta_t * np.arange( len(axes) )
+line1, = plt.plot( myt, axes[:, 0], color='b' , label='a')
+line2, = plt.plot( myt, axes[:, 1], color='r' , label='b')
+line3, = plt.plot( myt, axes[:, 2], color='g' , label='c')
+plt.legend( [ line1, line2, line3] , [ 'Axis $a$' , 'Axis $b$' , 'Axis $c$' ] , loc=2, fontsize=16 )
+    
+plt.xlabel( 'Time (hours)' , fontsize=15)
+plt.ylabel( 'Axes length (micrometers)' , fontsize=15 )
+plt.savefig('axis_evolution.png', dpi=400 , bbox_inches='tight')
 end = time.time()
 
 
@@ -209,7 +215,7 @@ plt.figure(4)
 
 lambda_cells = []
 
-for nn in range(len(fnames)):
+for nn in range(len(fnames) -1 ):
 
     pkl_file = open(os.path.join( 'data_files' , fnames[nn] ) , 'rb')
 
@@ -230,8 +236,63 @@ lambda_cells = lambda_cells[ sorted_index ]
 
 
 plt.plot( lambda_cells[:, 0] , lambda_cells[:, 1] , linewidth=1, linestyle=':', marker='o', markersize=10)
-plt.xlabel( 'Viscosity ratio' )
-plt.ylabel( 'Cell count after 20 hours' )
+plt.xlabel( '$\lambda$', fontsize=20 )
+plt.ylabel( 'Cell count after 20 hours' , fontsize=15 )
+plt.savefig( 'lam_cellcount.png', dpi=400, bbox_inches='tight')
+
+
+fig = plt.figure(5, figsize=(15, 15) , frameon=False)
+fig.patch.set_alpha(0.0)
+
+points = loc_mat[:, 0:3]
+
+pts , radii , A = dfm.set_initial_pars(points)
+
+print radii
+
+ax = fig.add_subplot(111, projection='3d')
+
+# plot points
+ax.scatter( pts[:, 0] , pts[:, 1] , pts[:, 2] , color='g' )
+
+# plot ellipsoid
+dfm.plotEllipsoid( radii ,  ax=ax, plotAxes=True )
+
+#Change the view angle and elevation
+ax.grid(False)
+ax.set_axis_off()
+
+ax.xaxis.set_major_formatter(plt.NullFormatter())
+ax.yaxis.set_major_formatter(plt.NullFormatter())
+ax.zaxis.set_major_formatter(plt.NullFormatter())
+ax.w_xaxis.line.set_color('#FFFFFF')
+ax.w_yaxis.line.set_color('#FFFFFF')
+ax.w_zaxis.line.set_color('#FFFFFF')
+ax.set_xticks([])                               
+ax.set_yticks([])                               
+ax.set_zticks([])
+
+ax.view_init( azim=-10, elev=30 )
+
+plt.savefig('cluster_ellipsoid.png', dpi=400 ,  bbox_inches='tight', tranparent=True )
+
+"""
+from PIL import Image
+
+img = Image.open('cluster_ellipsoid.png')
+img = img.convert("RGBA")
+datas = img.getdata()
+
+newData = []
+for item in datas:
+    if item[0] == 255 and item[1] == 255 and item[2] == 255:
+        newData.append((255, 255, 255, 0))
+    else:
+        newData.append(item)
+
+img.putdata(newData)
+img.save("cluster_ellipsoid.png", "PNG")
+"""
 
 end = time.time()
 

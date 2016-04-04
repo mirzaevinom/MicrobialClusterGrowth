@@ -10,6 +10,7 @@ from __future__ import division
 from scipy.spatial.distance import cdist
 from scipy.spatial import ConvexHull
 from constants import import_constants
+from multiprocessing import Pool
 
 import numpy as np
 import deformation as dfm
@@ -24,7 +25,24 @@ lam, mu, gammadot, Gamma= import_constants()
 
 L = np.zeros([3,3])
 
-L[0,1] = gammadot
+# set up the matrix velocity gradient L defined by du/dy=gammadot
+L = np.zeros( [3,3] )
+
+flowtype = 0
+
+if flowtype==0:
+    #Simple planar flow
+    L[0,1] = gammadot
+elif flowtype==1:
+    #Circulating flow
+    L[0,1] = gammadot
+    L[2, 0] = -gammadot
+elif flowtype==2:
+    #Elongational flow
+    L[0,0] = 1*gammadot
+    L[1, 1] = -gammadot
+else:
+    raise Exception("Please specify a valid flowtype")
 
 
 t0=0
@@ -48,7 +66,7 @@ f_strength = 1e-1
 
 ###########
 #Number of generations for to be simulated
-num_gen = 1
+num_gen = 20
 
 #Loop adjustment due to number of generation and generation time of a single cell
 num_loop = int( tau_p * num_gen / delta_t )
@@ -183,60 +201,75 @@ cycle_time = np.random.gamma( shape , scale , 10**5 )
 np.random.shuffle( cycle_time )
 
 
-vol                             = np.zeros( num_loop )
-      
-#init_loc_mat                    = np.load('cluster_10gen.npy')
 
-loc_mat                         = init_loc_mat.copy()
-
-axes                            = np.zeros( ( num_loop + 1 , 3 ) )
-G_vector                        = np.zeros( ( num_loop + 1 , 6 ) )
-
-
-
-loc_mat_list = []
- 
-for tt in range( num_loop ):
+def cellcount( lam  ):
     
-    #Append loc_mat at each generation
+    init_loc_mat  = np.array([ [0 , 0 , 0 , 1 , 0, 0 , 0] , 
+                               [0 , 1 , 0 , 1 , 0.4, 0 , 0] , 
+                               [0 , 0 , 1 , 1 , 0.3, 0 , 0] , 
+                               [1 , 0 , 0 , 1, 0.5, 0 , 0] ] )    
     
-    if np.mod(tt, 99)==0:
-        loc_mat_list.append([loc_mat])
+    loc_mat                         = init_loc_mat.copy()
     
-    loc_mat[: , 4] = loc_mat[: , 4] + delta_t
+    axes                            = np.zeros( ( num_loop + 1 , 3 ) )
+    G_vector                        = np.zeros( ( num_loop + 1 , 6 ) )
+        
+    for tt in range( num_loop ):
+
+        
+        #Update cell cycle time
+        loc_mat[: , 4] = loc_mat[: , 4] + delta_t
+        
+        #==============================================================================
+        #   Since new cells were added we need to change the ellipsoid axis 
+        #   in the body frame
+        #==============================================================================
+                  
+        points, radii , shape_tens  = dfm.set_initial_pars( loc_mat[ : , 0:3] )    
+        axes[tt]                    = radii
+        G_vector[tt]                = dfm.tens2vec( shape_tens )       
+        
+        
+        
+        #==============================================================================
+        #   deform the cell cluster
+        #==============================================================================
+            
     
-    #==============================================================================
-    #   Since new cells were added we need to change the ellipsoid axis 
-    #   in the body frame
-    #==============================================================================
+        axes[tt+1] , G_vector[tt+1] , Rot =  dfm.deform(t0, t1 , dt , G_vector[tt] , lam , mu , L , Gamma )
+        
+        dfm_frac = axes[ tt+1 ]  / axes[ tt ]
+        
+        if np.max( dfm_frac ) < 2 and np.min(dfm_frac) > 0.5:
+            rotation = Rot * dfm_frac
+            loc_mat[: , 0:3] = np.inner( points , rotation )
+            
+    
+        #==============================================================================
+        #    move the cells    
+        #==============================================================================
+            
+        loc_mat = cell_move(  loc_mat )
+    
+    
+
               
-    points, radii , shape_tens  = dfm.set_initial_pars( loc_mat[ : , 0:3] )    
-    axes[tt]                    = radii
-    G_vector[tt]                = dfm.tens2vec( shape_tens )       
-    
-    
-    
-    #==============================================================================
-    #   deform the cell cluster
-    #==============================================================================
+                  
+        #==============================================================================
+        #     divide the cells
+        #==============================================================================
+              
+        mitotic_cells1 = np.nonzero( loc_mat[ : , 4 ] > cycle_time[ range( len(loc_mat) ) ] )[0]
+        mitotic_cells2 = np.nonzero( loc_mat[ : , 3]  > 0 )[0]
         
-
-    axes[tt+1] , G_vector[tt+1] , Rot =  dfm.deform(t0, t1 , dt , G_vector[tt] , lam , mu , L , Gamma )
-    
-    dfm_frac = axes[ tt+1 ]  / axes[ tt ]
-    
-    if np.max( dfm_frac ) < 2 and np.min(dfm_frac) > 0.5:
-        rotation = Rot * dfm_frac
-        loc_mat[: , 0:3] = np.inner( points , rotation )
+        mitotic_cells =  np.intersect1d( mitotic_cells1 , mitotic_cells2 )
+               
+        if len(mitotic_cells) > 0:
+            
+            loc_mat = cell_divide( loc_mat ,  mitotic_cells , tt)
         
-
-    #==============================================================================
-    #    move the cells    
-    #==============================================================================
-        
-    loc_mat = cell_move(  loc_mat )
-
-
+    
+    
     #==============================================================================
     #   Measure the volume at that time
     #==============================================================================
@@ -246,59 +279,26 @@ for tt in range( num_loop ):
         
     pts             = loc_mat[: , 0:3] + ( loc_mat[: , 0:3].T / ar_norm   * 0.5 ).T 
     
-    vol[tt]         =  convex_hull_volume( pts ) 
-          
-              
-    #==============================================================================
-    #     divide the cells
-    #==============================================================================
-          
-    mitotic_cells1 = np.nonzero( loc_mat[ : , 4 ] > cycle_time[ range( len(loc_mat) ) ] )[0]
-    mitotic_cells2 = np.nonzero( loc_mat[ : , 3]  > 0 )[0]
+    vol         =  convex_hull_volume( pts )     
+    return [ lam , len( loc_mat) , loc_mat ,  vol , num_gen , delta_t ]
+                       
+
     
-    mitotic_cells =  np.intersect1d( mitotic_cells1 , mitotic_cells2 )
-           
-    if len(mitotic_cells) > 0:
+
+if __name__ == '__main__':
+    
+    pool = Pool( processes = 4 )
+    
+    my_lam = range( 10 , 110 , 10)
+    result = pool.map( cellcount , my_lam )
         
-        loc_mat = cell_divide( loc_mat ,  mitotic_cells , tt)
-                   
+    fname = 'cellcount_' + str(flowtype) + '.pkl'  
+    output_file = open( os.path.join( 'data_files' , fname ) , 'wb')
   
+    cPickle.dump( result , output_file )
+
+    output_file.close()
 
 end = time.time()
 
-print 'Number of cells at the end ' + str( len(loc_mat) )
-
 print "Elapsed time " + str( round( (end - start) / 60 , 1)  ) + " minutes"    
-
-
-data_dict = {
-            'init_loc_mat' : init_loc_mat ,
-            'loc_mat' : loc_mat  ,
-            'loc_mat_list' : loc_mat_list,
-            'vol' : vol ,
-            'num_loop' : num_loop  ,
-            'cycle_time' : cycle_time ,
-            'axes' : axes,
-            'G_vector' : G_vector,
-            'delta_t' : delta_t  , 
-            'tau_p' : tau_p ,
-            'r_cut' : r_cut ,      
-            'r_overlap' : r_overlap ,  
-            'ksi' : ksi , 
-            'f_strength' : f_strength ,
-            't1' : t1 ,
-            'lam' : lam ,
-            'mu' : mu , 
-            'gammadot' : gammadot,
-            'Gamma' : Gamma
-           }
-
-
-fname = 'data_' + time.strftime( "%m_%d_%H_%M" , time.localtime() ) + '_deformation.pkl'  
-output_file = open( os.path.join( 'data_files' , fname ) , 'wb')
-  
-cPickle.dump(data_dict, output_file)
-
-output_file.close()
-
-

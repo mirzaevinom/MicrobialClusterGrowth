@@ -384,12 +384,8 @@ def dropAxes(Gv):
     return daxes , V
 
 
-def deform(t0, t1 , dt, G0v , lam , mu , gammadot , Gamma ):
+def deform(t0, t1 , dt, G0v , lam , mu , L , Gamma ):
     
-    # set up the velocity gradient L defined by du/dy=gammadot
-    L = np.zeros([3,3])
-    L[0,1] = gammadot
- 
     mytime = np.arange(t0 , t1 + dt, dt)
     
     opt = odeint(ode_rhs , G0v, mytime, args=(L, lam, mu, Gamma) , rtol=1e-6, 
@@ -404,15 +400,13 @@ def deform(t0, t1 , dt, G0v , lam , mu , gammadot , Gamma ):
     axes , V = dropAxes( fin_yout )
   
     return axes, fin_yout , V
-
-def evolve(t0, t1 , dt, G0v , lam , mu , gammadot , Gamma ):
     
-    # set up the velocity gradient L defined by du/dy=gammadot
-    L = np.zeros([3,3])
-    L[0,1] = gammadot
- 
+
+def evolve(t0, t1 , dt, G0v , lam , mu , L , Gamma ):
+    
+        
     mytime = np.arange(t0 , t1 + dt, dt)
-    #print dropAxes(G0v)[0]
+
     opt = odeint(ode_rhs , G0v, mytime, args=(L, lam, mu, Gamma) , rtol=1e-6, 
                  atol=1e-8, full_output=True , printmessg=False )   
     
@@ -423,7 +417,6 @@ def evolve(t0, t1 , dt, G0v , lam , mu , gammadot , Gamma ):
       raise Exception('Integration did not converge')
 
     N = len( yout )
-    #print dropAxes(yout[0])
     axes = np.zeros( (N, 3) )
     for mm in range(N):
         axes[mm] = dropAxes( yout[mm] )[0]
@@ -555,7 +548,7 @@ def plotEllipsoid( radii , center=np.array( [0,0,0] ) ,  rotation = np.identity(
             X3 = np.linspace(-p[0], p[0], 100) + center[0]
             Y3 = np.linspace(-p[1], p[1], 100) + center[1]
             Z3 = np.linspace(-p[2], p[2], 100) + center[2]
-            ax.plot(X3, Y3, Z3, color=cageColor)
+            ax.plot(X3, Y3, Z3, color=cageColor, linewidth=2)
 
     # plot ellipsoid
     ax.plot_wireframe(x, y, z,  rstride=4, cstride=4, color=cageColor, alpha=cageAlpha)
@@ -579,23 +572,24 @@ def set_initial_pars(data_raw):
     data_c = data_raw - mu                                                        
                                                             
     # obtain the eigensystem                                                    
-    evals, evecs = np.linalg.eigh(np.dot(data_c.T,data_c))                      
+    evals, evecs = np.linalg.eigh( np.dot( data_c.T,data_c))                      
     
     # rotate the centered data                                                  
     data_rc = np.inner(data_c, evecs)
                                              
     # compute the axes lenghts                                                  
-    axes = np.max( np.abs(data_rc) , axis=0)    
+    axes = np.max( np.abs( data_rc ) , axis=0 )    
 
     # sort the axes lengths                                                     
     indices=np.argsort(axes)[::-1]                                              
-    axes_sorted = axes[indices]                                                 
+    axes_sorted = axes[ indices ]                                                 
     
     # reorder the columns of the evec matrix to reflect sorting                 
     evecs_sorted = evecs[:,indices]                                             
     
     # check to make sure evecs is a rotation matrix                             
-    tol = 10**(-6)                                                              
+    tol = 10**(-6)
+                                                              
     if np.abs(np.linalg.det(evecs_sorted)) > 1.+tol:                            
       raise Exception("This is not a rotation")                                 
     if np.linalg.det(evecs_sorted) < 0:                                         
@@ -605,8 +599,10 @@ def set_initial_pars(data_raw):
     # asign output                                                              
     R = evecs_sorted                                                          
     a = axes_sorted                                                             
-    # obtain rotated coordinates                                                
+    # obtain rotated coordinates
+    # data_c is original points                                                
     coords = np.inner(data_c, R.T)
+    
     
     evals = 1 / a**2
     A = np.dot(R, np.dot( np.diag(evals) , R.T )  )                                         

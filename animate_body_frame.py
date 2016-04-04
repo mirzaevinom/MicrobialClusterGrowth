@@ -23,7 +23,7 @@ for file in os.listdir("data_files"):
     if file.endswith("deformation.pkl"):
         fnames.append(file)
 
-pkl_file = open(os.path.join( 'data_files' , fnames[-1] ) , 'rb')
+pkl_file = open(os.path.join( 'data_files' , fnames[1] ) , 'rb')
 
 data_dict = cPickle.load( pkl_file )        
 pkl_file.close()
@@ -46,7 +46,7 @@ def hex2color(s):
 
 
 mlab.close(all=True)
-mlab.figure( size=(600, 600) )
+mlab.figure( size=(1500, 1500) )
 
 myaxes = axes#[::int( len(axes) / 1000) ]
 num_fps = 24
@@ -79,8 +79,8 @@ def make_frame(t):
 
 animation = mpy.VideoClip(make_frame, duration=duration)
 
-#vf_name = 'mlab_animation_' + time.strftime("%Y_%m_%d_%H_%M", time.gmtime()) + '.mp4'
-vf_name = 'growth_deformation.mp4'
+vf_name = 'body_frame_lamda_' + str(lam) + '.mp4'
+#vf_name = 'growth_deformation.mp4'
 
 animation.write_videofile( vf_name , fps = num_fps)
 
