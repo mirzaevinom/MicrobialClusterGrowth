@@ -26,7 +26,7 @@ for file in os.listdir("data_files"):
     if file.endswith("deformation.pkl"):
         fnames.append(file)
 
-pkl_file = open(os.path.join( 'data_files' , fnames[1] ) , 'rb')
+pkl_file = open(os.path.join( 'data_files' , fnames[-1] ) , 'rb')
 
 data_dict = cPickle.load( pkl_file )        
 pkl_file.close()

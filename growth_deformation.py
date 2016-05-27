@@ -7,12 +7,12 @@ Created on Mar 13 2016
 """
 
 from __future__ import division
-from scipy.spatial.distance import cdist
-from scipy.spatial import ConvexHull
+
 from constants import import_constants
 
 import numpy as np
 import deformation as dfm
+import move_divide as md
 
 import time, cPickle, os
 
@@ -33,133 +33,17 @@ t1 = 20
 dt = 1e-1 / gammadot
 
 ########
-#Parameters for cell movement and proliferation
+#Parameters for cell proliferation
 tau_p = 1
-r_cut = 1.0
-delta_t = 0.01
-r_overlap = 0.9
 
-#Friction rate induced by viscousity of the ECM
-ksi = 1
-
-#Strength of the Lennard-Jones potential for cell-cell adhesion and repulsion
-f_strength = 1e-1
 
 
 ###########
 #Number of generations for to be simulated
-num_gen = 2
+num_gen = 15
 
 #Loop adjustment due to number of generation and generation time of a single cell
-num_loop = int( tau_p * num_gen / delta_t )
-
-
-#==============================================================================
-# Random empty spot search for cell division
-#==============================================================================
-
-
-x = np.random.normal( 0 , 1 , size=2000)
-y = np.random.normal( 0 , 1 , size=2000)
-z = np.random.normal( 0 , 1 , size=2000)
-
-
-mynorm = np.sqrt( x**2 + y**2 + z**2 )
-
-sphr_shift = ( np.array( [ x , y , z ] ) / mynorm ).T
-
-distances = cdist( sphr_shift , sphr_shift ) 
- 
-distances = np.tril( distances ) + np.triu(np.ones( (len( sphr_shift ) , len( sphr_shift )) ) )
-
-tbd = np.unique( np.nonzero(distances < 0.1)[0] )
-
-sphr_shift = np.delete(sphr_shift , tbd , axis=0)
-
-
-
-def cell_move( loc_mat ,  ksi = ksi , r_overlap = r_overlap , 
-               delta_t = delta_t , f_strenth=f_strength, r_cut = r_cut ):
-                   
-    N = len(loc_mat)               
-    indices = np.arange(N)               
-    for cnum in xrange( N ):
-
-        vec         = loc_mat[ cnum , 0:3] - loc_mat[ indices != cnum , 0:3]
-        
-        mag_vec     = np.linalg.norm( vec, axis=1)
-        
-        neig1        =  np.nonzero( mag_vec <= r_cut )[0]
-        neig2        =  np.nonzero( mag_vec > r_overlap )[0]
-        
-        neig         = np.intersect1d( neig1, neig2 )
-        mag_vec     = mag_vec[ neig ]
-        vec         = vec[ neig ]
-            
-        #==============================================================================
-        #            magnitude of modified Lennard-Jones force. Equilibrium between 
-        #           repulsion and adhesion is set to r_e = 1    
-        #==============================================================================
-        force       = 24 * f_strength * ( 1 * ( 1/mag_vec )**12- ( 1/mag_vec )**6  )  /  ( mag_vec**2 )
-        
-        #Lennard-Jones force vector 
-        lj_force    = np.sum ( ( vec.T * force ).T , axis=0 )   
-        loc_mat[ cnum , 0:3]    += delta_t * lj_force / ksi  
-        
-    return loc_mat
-
-
-def cell_divide( loc_mat , mitotic_cells , tt ,  sphr_shift = sphr_shift):
-    
-    N = len(loc_mat)               
-    indices = np.arange(N) 
-    
-    for cnum in mitotic_cells:
-        
-         
-        neighbors = loc_mat[ indices[ indices != cnum] , 0:3 ]
-            
-        loc_mat[cnum, 4] = 0
-        
-        loc = 0
-    
-        espots = loc_mat[ cnum , 0:3 ] + sphr_shift
-    
-        radius = np.ones( len( neighbors ) )                
-        dist_mat = cdist( espots , neighbors )
-           
-        d_list = np.prod( dist_mat >= radius , axis=1 )
-    
-        if np.sum(d_list) != 0 :
-        
-            esnum = np.random.choice( np.nonzero( d_list == 1 )[0] , 1)[0]
-            loc = espots[esnum, 0:3]
-               
-        if isinstance( loc , np.ndarray ):
-            loc_mat[cnum, 5] = 0
-            age = 0
-            loc_mat     = np.append( loc_mat , [ [ loc[0] , loc[1] , loc[2] , 1 , age , 0 , tt ] ] , axis=0)
-        else:
-            loc_mat[cnum, 3] = 0
- 
-    return loc_mat
-
-#Computes the volume of the tetrahedron
-def tetrahedron_volume(a , b , c , d ):
-    return np.abs(np.einsum('ij,ij->i', a-d, np.cross(b-d, c-d))) / 6
-        
-
-#Generates a triangulation, then sums volumes of each tetrahedron
-def convex_hull_volume(pts):
-    
-    ch = ConvexHull(pts)
-
-    simplices = np.column_stack((np.repeat(ch.vertices[0], ch.nsimplex),
-                                 ch.simplices))
-    tets = ch.points[simplices]
-    return np.sum(tetrahedron_volume(tets[:, 0], tets[:, 1] ,
-                                     tets[:, 2], tets[:, 3]))    
-
+num_loop = int( tau_p * num_gen / md.delta_t )
 
 
 #==============================================================================
@@ -168,7 +52,7 @@ def convex_hull_volume(pts):
 #==============================================================================
 
 
-"""
+
 init_loc_mat  = np.array([ [0 , 0 , 0 , 1 , 0, 0 , 0] , 
                            [0 , 1 , 0 , 1 , 0.4, 0 , 0] , 
                            [0 , 0 , 1 , 1 , 0.3, 0 , 0] , 
@@ -181,11 +65,11 @@ loc_mat_list = cPickle.load(pkl_file)
 pkl_file.close()
 
 
-floc = loc_mat_list[0]
+floc = loc_mat_list[3]
 init_loc_mat = np.zeros( ( len(floc) , 7 ) )
 init_loc_mat[ : , 0:3] = floc
 init_loc_mat[:, 3] = 1
-
+"""
 
 shape = 60
 scale = 1 / shape
@@ -215,7 +99,7 @@ for tt in range( num_loop ):
     if np.mod(tt, 99)==0:
         loc_mat_list.append([loc_mat])
     
-    loc_mat[: , 4] = loc_mat[: , 4] + delta_t
+    loc_mat[: , 4] = loc_mat[: , 4] + md.delta_t
     
     #==============================================================================
     #   Since new cells were added we need to change the ellipsoid axis 
@@ -246,7 +130,7 @@ for tt in range( num_loop ):
     #    move the cells    
     #==============================================================================
         
-    loc_mat = cell_move(  loc_mat )
+    loc_mat = md.hertzian_move(  loc_mat )
 
 
     #==============================================================================
@@ -258,7 +142,7 @@ for tt in range( num_loop ):
         
     pts             = loc_mat[: , 0:3] + ( loc_mat[: , 0:3].T / ar_norm   * 0.5 ).T 
     
-    vol[tt]         =  convex_hull_volume( pts ) 
+    vol[tt]         =  md.convex_hull_volume( pts ) 
           
               
     #==============================================================================
@@ -272,7 +156,7 @@ for tt in range( num_loop ):
            
     if len(mitotic_cells) > 0:
         
-        loc_mat = cell_divide( loc_mat ,  mitotic_cells , tt)
+        loc_mat = md.cell_divide( loc_mat ,  mitotic_cells , tt)
                    
   
 
@@ -292,12 +176,10 @@ data_dict = {
             'cycle_time' : cycle_time ,
             'axes' : axes,
             'G_vector' : G_vector,
-            'delta_t' : delta_t  , 
+            'delta_t' : md.delta_t  , 
             'tau_p' : tau_p ,
-            'r_cut' : r_cut ,      
-            'r_overlap' : r_overlap ,  
-            'ksi' : ksi , 
-            'f_strength' : f_strength ,
+            'r_cut' : md.r_cut ,      
+            'r_overlap' : md.r_overlap ,
             't1' : t1 ,
             'lam' : lam ,
             'mu' : mu , 
