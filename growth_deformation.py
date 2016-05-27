@@ -48,7 +48,7 @@ f_strength = 1e-1
 
 ###########
 #Number of generations for to be simulated
-num_gen = 1
+num_gen = 2
 
 #Loop adjustment due to number of generation and generation time of a single cell
 num_loop = int( tau_p * num_gen / delta_t )
@@ -135,7 +135,7 @@ def cell_divide( loc_mat , mitotic_cells , tt ,  sphr_shift = sphr_shift):
             esnum = np.random.choice( np.nonzero( d_list == 1 )[0] , 1)[0]
             loc = espots[esnum, 0:3]
                
-        if isinstance(loc, np.ndarray):
+        if isinstance( loc , np.ndarray ):
             loc_mat[cnum, 5] = 0
             age = 0
             loc_mat     = np.append( loc_mat , [ [ loc[0] , loc[1] , loc[2] , 1 , age , 0 , tt ] ] , axis=0)
@@ -168,11 +168,23 @@ def convex_hull_volume(pts):
 #==============================================================================
 
 
-
+"""
 init_loc_mat  = np.array([ [0 , 0 , 0 , 1 , 0, 0 , 0] , 
                            [0 , 1 , 0 , 1 , 0.4, 0 , 0] , 
                            [0 , 0 , 1 , 1 , 0.3, 0 , 0] , 
                            [1 , 0 , 0 , 1, 0.5, 0 , 0] ] )
+"""
+
+fname = 'large_pneumonia_coords.pkl'
+pkl_file = open(os.path.join( 'data_files' , fname ) , 'rb')
+loc_mat_list = cPickle.load(pkl_file)
+pkl_file.close()
+
+
+floc = loc_mat_list[0]
+init_loc_mat = np.zeros( ( len(floc) , 7 ) )
+init_loc_mat[ : , 0:3] = floc
+init_loc_mat[:, 3] = 1
 
 
 shape = 60

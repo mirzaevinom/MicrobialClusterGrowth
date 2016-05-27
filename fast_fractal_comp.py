@@ -137,7 +137,9 @@ mlab.points3d( loc_mat[:, 0], loc_mat[:, 1], loc_mat[:, 2] ,
                resolution=20, color = cell_color  )
                
 mlab.view(distance = 75 )
-mlab.savefig('sample_floc.png')
+
+img_name = 'sample_floc.png'
+mlab.savefig( os.path.join( 'images' , img_name ) )
 
 #Radius of gyration fractal dimension
 
@@ -183,7 +185,10 @@ plt.legend( [ line1, line2, line3] , [ 'Axis $a$' , 'Axis $b$' , 'Axis $c$' ] , 
     
 plt.xlabel( 'Time (hours)' , fontsize=15)
 plt.ylabel( 'Axes length (micrometers)' , fontsize=15 )
-plt.savefig('axis_evolution.png', dpi=400 , bbox_inches='tight')
+
+img_name = 'axis_evolution.png'
+plt.savefig( os.path.join( 'images' , img_name ) , dpi=400, bbox_inches='tight')
+
 end = time.time()
 
 
@@ -238,7 +243,10 @@ lambda_cells = lambda_cells[ sorted_index ]
 plt.plot( lambda_cells[:, 0] , lambda_cells[:, 1] , linewidth=1, linestyle=':', marker='o', markersize=10)
 plt.xlabel( '$\lambda$', fontsize=20 )
 plt.ylabel( 'Cell count after 20 hours' , fontsize=15 )
-plt.savefig( 'lam_cellcount.png', dpi=400, bbox_inches='tight')
+
+
+img_name = 'lam_cellcount.png'
+plt.savefig( os.path.join( 'images' , img_name ) , dpi=400, bbox_inches='tight')
 
 
 fig = plt.figure(5, figsize=(15, 15) , frameon=False)
@@ -274,12 +282,14 @@ ax.set_zticks([])
 
 ax.view_init( azim=-10, elev=30 )
 
-plt.savefig('cluster_ellipsoid.png', dpi=400 ,  bbox_inches='tight', tranparent=True )
+img_name = 'cluster_ellipsoid.png'
+plt.savefig( os.path.join( 'images' , img_name ) , dpi=400, bbox_inches='tight')
+
 
 """
 from PIL import Image
 
-img = Image.open('cluster_ellipsoid.png')
+img = Image.open( 'cluster_ellipsoid.png' )
 img = img.convert("RGBA")
 datas = img.getdata()
 
@@ -292,6 +302,7 @@ for item in datas:
 
 img.putdata(newData)
 img.save("cluster_ellipsoid.png", "PNG")
+
 """
 
 end = time.time()

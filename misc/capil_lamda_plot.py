@@ -6,7 +6,7 @@ from constants import import_constants
 import matplotlib.pyplot as plt
 import deformation as dfm
 import numpy as np
-import time
+import time, os
 
 # import the constants
 lam, mu, gammadot, Gamma= import_constants()
@@ -93,5 +93,6 @@ plt.xlabel( '$Ca$' , fontsize=20 )
 plt.ylabel( '$\lambda$' , fontsize=20 )
 plt.colorbar()
 
-plt.savefig( 'capillar_lambdas_'+str(flowtype)+'.png' , dpi=400, bbox_inches='tight' )
+img_name = 'capillar_lambdas_'+str(flowtype)+'.png'
 
+plt.savefig( os.path.join( 'images' , img_name ) , dpi=400, bbox_inches='tight')

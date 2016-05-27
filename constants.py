@@ -18,9 +18,8 @@ mu = mu_si * 10**(-6)                    # microNewton s / micrometer^2
 gammadot = 1                             
 
 # interfacial tension, N/m
-Gamma = 1e-7                            
+Gamma = 1e-8                            
                                  
-
 
 # ----- List for Import -----
 constants = [ lam , mu , gammadot , Gamma]

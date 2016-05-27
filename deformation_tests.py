@@ -33,9 +33,9 @@ start = time.time()
 # set up the matrix velocity gradient L defined by du/dy=gammadot
 L = np.zeros( [3,3] )
 
-L[0,1] = gammadot/3
-L[1, 2] = gammadot/3
-L[0, 2] = gammadot/3
+L[0,1] = gammadot
+#L[1, 2] = gammadot
+#L[0, 2] = gammadot/3
 
 #Elongational flow
 #L[0,0] = 1*gammadot
@@ -74,21 +74,19 @@ print 'Max Taylor deformation', taylor_deform
 
 plt.close('all')
 
-plt.figure(3)
+plt.figure(0)
 
 plt.plot(axes)
-#plt.plot( np.prod( axes , axis=1 ) )
-#radii , G0v = dfm.deform(t0, t1 , dt , G0v , lam , mu , gammadot , Gamma )
-#
-#print radii
 
+
+"""
 pkl_file = open(os.path.join( 'data_files' ,'cellcount_0.pkl' ) , 'rb')
 
 results = cPickle.load( pkl_file )        
 
 pkl_file.close()
 
-"""
+
 
 points = 10*np.random.rand(10**4, 3)
 points  = points - np.mean(points , axis=0)
