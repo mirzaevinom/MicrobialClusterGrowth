@@ -10,9 +10,10 @@ from __future__ import division
 from scipy.spatial.distance import cdist
 from scipy.spatial import ConvexHull
 
+
 import numpy as np
-
-
+import matplotlib.pyplot as plt
+import dla_3d as dla
 
 ########
 #Parameters for cell movement and proliferation
@@ -172,7 +173,7 @@ def cell_divide( loc_mat , mitotic_cells , tt ,  sphr_shift = sphr_shift):
         if np.sum(d_list) != 0 :
         
             esnum = np.random.choice( np.nonzero( d_list == 1 )[0] , 1)[0]
-            loc = espots[esnum, 0:3]
+            loc = espots[ esnum , 0:3]
                
         if isinstance( loc , np.ndarray ):
             loc_mat[ cnum , 5 ] = 0
@@ -200,12 +201,63 @@ def convex_hull_volume(pts):
     return np.sum(tetrahedron_volume(tets[:, 0], tets[:, 1] ,
                                      tets[:, 2], tets[:, 3]))    
 
+def fractal_dimension(loc_mat):
+    
+    """
+    Given a floc coordinates computes the fractal dimension of the floc"""
+    
+    N = len( loc_mat )
+    
+    c_mass = np.mean( loc_mat[: , 0:3] , axis=0 )
+    
+    loc_mat[ : , 0:3]  = loc_mat[ : , 0:3] - c_mass
+    dists = np.sum( (loc_mat[: , 0:3] )**2 , axis=1 )      
+  
+    lastN = int( N*0.95  )
+   
+    
+    #Radius of gyration
+    rad_gyr = np.zeros( lastN )
+    
+    #cells inside radius of gyration
+    cells_gyr = np.zeros( lastN )
+    
+    for mm in range( N - lastN , N):
+        
+        #c_mass                       = np.sum( loc_mat[ 0 : mm , 0:3 ] , axis=0 ) / mm
+            
+        rad_gyr[ mm - N + lastN ]    = np.sum( 1 / mm  * dists[0:mm] )**(1/2)
+        
+        #dmm                          = np.sum( ( loc_mat[:, 0:3] - c_mass )**2 , axis=1 )
+        
+        cells_within                 = np.nonzero( dists <=  ( rad_gyr[ mm - N + lastN ] )**2  )[0]
+        
+        cells_gyr[ mm - N + lastN ]  = len( cells_within )
+        
+    
+    lin_fit     = np.polyfit(  np.log( rad_gyr) , np.log( cells_gyr ) , 1 )
+     
+    return lin_fit[0]
+    
 
+def hex2color(s):
+    
+    "Convert hex string (like html uses, eg, #efefef ) to a r,g,b tuple"
+
+    if s.find('#')!=0 or len(s)!=7:
+        raise ValueError('s must be a hex string like "#efefef#')
+
+    r,g,b = map(lambda x: int('0x' + x, 16)/256.0, (s[1:3], s[3:5], s[5:7]))
+
+    return r,g,b
+    
+    
 
 if __name__ == "__main__":
     
     import mayavi.mlab as mlab
     import cPickle, os
+    import scipy.io as sio
 
     fname = 'large_pneumonia_coords.pkl'
     pkl_file = open(os.path.join( 'data_files' , fname ) , 'rb')
@@ -221,11 +273,18 @@ if __name__ == "__main__":
     #Loop adjustment due to number of generation and generation time of a single cell
     num_loop = int( tau_p * num_gen / delta_t )
 
-    floc = loc_mat_list[4]
+    #floc = loc_mat_list[5]
+    floc = dla.dla_generator()
+    
     init_loc_mat = np.zeros( ( len(floc) , 3 ) )
     init_loc_mat = floc
     
     loc_mat                         = init_loc_mat.copy()
+#    dla_mat = sio.loadmat( 'test.mat' )[ 'map' ]
+#    
+#    cells = np.nonzero( dla_mat )
+#    
+#    loc_mat = np.array(cells).T
     
     mlab.close(all=True)
     
@@ -235,19 +294,27 @@ if __name__ == "__main__":
                    scale_factor=2.0, resolution=20 )
                    
     
+    f_dims = np.zeros( num_loop )
+    
     for tt in range( num_loop ):
         
     
         #==============================================================================
         #    move the cells    
         #==============================================================================
-            
+        f_dims[ tt ] = fractal_dimension(loc_mat)         
         loc_mat = hertzian_move(  loc_mat )
+                
+        
     
     mlab.figure( size=(1600 , 1600) , bgcolor=(1,1,1) )
     
     mlab.points3d( loc_mat[:, 0], loc_mat[:, 1], loc_mat[:, 2] , 0.5*np.ones( len(loc_mat) ) ,
                    scale_factor=2.0, resolution=20 )
+    
+    plt.close('all')
+    plt.figure(0)
+    plt.plot( f_dims , linewidth=2)
     
 
 

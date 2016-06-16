@@ -16,7 +16,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time, os, cPickle
 import mayavi.mlab as mlab
-
+import move_divide as md
 start = time.time()
 
 
@@ -35,18 +35,6 @@ pkl_file.close()
 
 locals().update( data_dict )
 
-
-def hex2color(s):
-    
-    "Convert hex string (like html uses, eg, #efefef ) to a r,g,b tuple"
-
-    if s.find('#')!=0 or len(s)!=7:
-        raise ValueError('s must be a hex string like "#efefef#')
-
-    r,g,b = map(lambda x: int('0x' + x, 16)/256.0, (s[1:3], s[3:5], s[5:7]))
-
-    return r,g,b
-    
 
 
 def fractal_dimension(loc_mat):
@@ -107,7 +95,7 @@ def remove_overlap(loc_mat, r_overlap):
 
 fdim_list = []
 cell_list = []
-for nn in range( 10 , len(loc_mat_list) ):
+for nn in range( 0 , len(loc_mat_list) ):
     
     loc_mat = loc_mat_list[nn][0]
     fdim    = fractal_dimension(loc_mat)[2][0]
@@ -120,6 +108,7 @@ for nn in range( 10 , len(loc_mat_list) ):
 #==============================================================================
 plt.close( 'all' )
 
+
 plt.figure(0)
 
 plt.plot( cell_list , fdim_list , linewidth=2 , color='blue')
@@ -130,7 +119,7 @@ loc_mat = loc_mat_list[-1][0]
 mlab.close(all=True)
 mlab.figure(  bgcolor=(1,1,1) )
 
-cell_color = hex2color('#32CD32')
+cell_color = md.hex2color('#32CD32')
 
 mlab.points3d( loc_mat[:, 0], loc_mat[:, 1], loc_mat[:, 2] , 
                0.5*np.ones( len( loc_mat ) ), scale_factor=2.0 , 
@@ -206,7 +195,7 @@ xdata = delta_t * np.arange( len( num_cells) )
 
 #xdata = np.linspace(0, num_loop * delta_t, num_loop)
 
-popt, pcov = curve_fit(func, xdata, num_cells)     
+popt, pcov = curve_fit(func, xdata, vol)     
 
 print '[a, b]=', popt      
 ydata= func( xdata, popt[0], popt[1])
@@ -248,42 +237,47 @@ plt.ylabel( 'Cell count after 20 hours' , fontsize=15 )
 img_name = 'lam_cellcount.png'
 plt.savefig( os.path.join( 'images' , img_name ) , dpi=400, bbox_inches='tight')
 
-
 fig = plt.figure(5, figsize=(15, 15) , frameon=False)
 fig.patch.set_alpha(0.0)
 
 points = loc_mat[:, 0:3]
 
-pts , radii , A = dfm.set_initial_pars(points)
-
+pts , radii , A = dfm.set_initial_pars( points )
 print radii
+
 
 ax = fig.add_subplot(111, projection='3d')
 
 # plot points
 ax.scatter( pts[:, 0] , pts[:, 1] , pts[:, 2] , color='g' )
-
+ax.set_xlabel('$a$' , fontsize = 20 )
+ax.set_ylabel('$b$' , fontsize = 20 )
+ax.set_zlabel('$c$' , fontsize = 20 )
+ax.set_aspect('equal')
 # plot ellipsoid
 dfm.plotEllipsoid( radii ,  ax=ax, plotAxes=True )
 
 #Change the view angle and elevation
-ax.grid(False)
-ax.set_axis_off()
-
-ax.xaxis.set_major_formatter(plt.NullFormatter())
-ax.yaxis.set_major_formatter(plt.NullFormatter())
-ax.zaxis.set_major_formatter(plt.NullFormatter())
-ax.w_xaxis.line.set_color('#FFFFFF')
-ax.w_yaxis.line.set_color('#FFFFFF')
-ax.w_zaxis.line.set_color('#FFFFFF')
-ax.set_xticks([])                               
-ax.set_yticks([])                               
-ax.set_zticks([])
-
 ax.view_init( azim=-10, elev=30 )
 
+#Change the view angle and elevation
+#ax.grid(False)
+#ax.set_axis_off()
+#
+#ax.xaxis.set_major_formatter(plt.NullFormatter())
+#ax.yaxis.set_major_formatter(plt.NullFormatter())
+#ax.zaxis.set_major_formatter(plt.NullFormatter())
+#ax.w_xaxis.line.set_color('#FFFFFF')
+#ax.w_yaxis.line.set_color('#FFFFFF')
+#ax.w_zaxis.line.set_color('#FFFFFF')
+#ax.set_xticks([])                               
+#ax.set_yticks([])                               
+#ax.set_zticks([])
+#
+#ax.view_init( azim=-10, elev=30 )
+
 img_name = 'cluster_ellipsoid.png'
-plt.savefig( os.path.join( 'images' , img_name ) , dpi=400, bbox_inches='tight')
+#plt.savefig( os.path.join( 'images' , img_name ) , dpi=400, bbox_inches='tight')
 
 
 """

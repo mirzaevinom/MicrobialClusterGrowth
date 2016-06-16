@@ -572,10 +572,10 @@ def set_initial_pars(data_raw):
     data_c = data_raw - mu                                                        
                                                             
     # obtain the eigensystem                                                    
-    evals, evecs = np.linalg.eigh( np.dot( data_c.T,data_c))                      
+    evals, evecs = np.linalg.eigh( np.dot( data_c.T, data_c ) )                      
     
-    # rotate the centered data                                                  
-    data_rc = np.inner(data_c, evecs)
+    # rotate the centered data to the body frame                                                 
+    data_rc = np.inner( data_c , evecs.T )
                                              
     # compute the axes lenghts                                                  
     axes = np.max( np.abs( data_rc ) , axis=0 )    
@@ -585,7 +585,7 @@ def set_initial_pars(data_raw):
     axes_sorted = axes[ indices ]                                                 
     
     # reorder the columns of the evec matrix to reflect sorting                 
-    evecs_sorted = evecs[:,indices]                                             
+    evecs_sorted = evecs[:, indices]                                             
     
     # check to make sure evecs is a rotation matrix                             
     tol = 10**(-6)
@@ -598,11 +598,13 @@ def set_initial_pars(data_raw):
    
     # asign output                                                              
     R = evecs_sorted                                                          
-    a = axes_sorted                                                             
+    a = axes_sorted     
+                                                        
     # obtain rotated coordinates
-    # data_c is original points                                                
-    coords = np.inner(data_c, R.T)
-    
+    # data_c is original points   
+                                                        
+    #coords = np.inner(data_c, R.T)
+    coords = data_rc[: , indices ]    
     
     evals = 1 / a**2
     A = np.dot(R, np.dot( np.diag(evals) , R.T )  )                                         

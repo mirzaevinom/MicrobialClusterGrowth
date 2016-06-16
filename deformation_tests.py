@@ -21,7 +21,7 @@ import time, cPickle, os
 lam, mu, gammadot, Gamma= import_constants()
 
 # set the initial axes
-a0 = np.array( [ 10.0, 10.0 , 10.0 ] )
+a0 = np.array( [ 12.0, 11.0 , 10.0 ] )
 #a0 = np.sort( 1 + 10*np.random.rand(3) )[::-1]
 
 t0 = 0
@@ -32,15 +32,16 @@ dt = 1e-1 / gammadot
 start = time.time()
 # set up the matrix velocity gradient L defined by du/dy=gammadot
 L = np.zeros( [3,3] )
-
 L[0,1] = gammadot
-#L[1, 2] = gammadot
+
+L[1, 2] = gammadot
 #L[0, 2] = gammadot/3
 
 #Elongational flow
-#L[0,0] = 1*gammadot
+#L[0,0] = 2*gammadot
 #L[1, 1] = -gammadot
 #L[2, 2] = -gammadot
+#L *=0.01
 
 # set up the initial shape tensor
 G0 = np.diag( 1.0 / a0**2 )
@@ -79,23 +80,20 @@ plt.figure(0)
 plt.plot(axes)
 
 
-"""
-pkl_file = open(os.path.join( 'data_files' ,'cellcount_0.pkl' ) , 'rb')
-
-results = cPickle.load( pkl_file )        
-
-pkl_file.close()
-
-
 
 points = 10*np.random.rand(10**4, 3)
 points  = points - np.mean(points , axis=0)
 dists = np.sum( points**2 , axis=1)
 points = points[dists<25]
-points = points * np.array([ 5 , 2 , 1 ]) 
+points = points * np.array([ 10 , 10 , 1 ]) 
 
-
-points = np.load( 'acluster.npy' )[:, 0:3]
+#import scipy.io as sio
+#
+#dla_mat = sio.loadmat( 'test.mat' )[ 'map' ]
+#
+#cells = np.nonzero( dla_mat )
+#
+#points = np.array(cells).T
 
 
 fig = plt.figure(0)
@@ -115,23 +113,24 @@ dfm.plotEllipsoid( radii ,  ax=ax, plotAxes=True )
 #Change the view angle and elevation
 ax.view_init( azim=-10, elev=30 )
 
-
+"""
 fig = plt.figure(1)
 
-(points, radii , shape_tens) = dfm.get_body_ellipse(points)
+(pts, radii , shape_tens) = dfm.get_body_ellipse(points)
 
 print radii
 
 ax = fig.add_subplot(111, projection='3d')
 
 # plot points
-ax.scatter( points[:, 0] , points[:, 1] , points[:, 2] , color='g' )
+ax.scatter( pts[:, 0] , pts[:, 1] , pts[:, 2] , color='g' )
 
 # plot ellipsoid
 dfm.plotEllipsoid( radii ,  ax=ax, plotAxes=True )
 
 #Change the view angle and elevation
 ax.view_init( azim=-10, elev=30 )
+
 
 
 mlab.close(all=True)

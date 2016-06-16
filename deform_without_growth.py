@@ -27,7 +27,7 @@ lam, mu, gammadot, Gamma= import_constants()
 
 L = np.zeros([3,3])
 
-flow_type = 0
+flow_type = 1
 
 if flow_type == 0:
     # Simple shear in one direction
@@ -65,7 +65,7 @@ tau_p = 30*60
 
 ###########
 #Number of generations for to be simulated
-num_gen = 5
+num_gen = 20
 
 #Loop adjustment due to number of generation and generation time of a single cell
 num_loop = int( tau_p * num_gen / sim_step )
@@ -92,7 +92,7 @@ floc = loc_mat_list[1]
 
 
 
-floc = dla.dla_generator()
+floc = dla.dla_generator( num_particles = 4000 )
 
 #dla_mat = sio.loadmat( 'test.mat' )[ 'map' ]
 #
@@ -117,10 +117,14 @@ np.random.shuffle( cycle_time )
 
 
 vol                             = np.zeros( num_loop )
+just_move_vol                             = np.zeros( num_loop )
+
       
 #init_loc_mat                    = np.load('cluster_10gen.npy')
 
 loc_mat                         = init_loc_mat.copy()
+
+just_move                       = floc.copy()
 
 axes                            = np.zeros( ( num_loop + 1 , 3 ) )
 G_vector                        = np.zeros( ( num_loop + 1 , 6 ) )
@@ -128,23 +132,28 @@ G_vector                        = np.zeros( ( num_loop + 1 , 6 ) )
 
 
 loc_mat_list = []
+just_move_list = []
  
 for tt in range( num_loop ):
     
     #Append loc_mat at each half generation
     
-    if np.mod(tt, int( num_loop / num_gen / 5 ) -1 )==0:
-        loc_mat_list.append([loc_mat])
-    
-    loc_mat[: , 4] = loc_mat[: , 4] + sim_step
+    if np.mod(tt, int( num_loop / num_gen / 2 ) -1 )==0:
+        
+        loc_mat_list.append([ loc_mat.copy() , tt])
+        just_move_list.append( [ just_move.copy() , tt ] )
     
     #==============================================================================
     #   Since new cells were added we need to change the ellipsoid axis 
     #   in the body frame
     #==============================================================================
-              
+    
+
+    # set initial radii and return points in body frame          
     points, radii , shape_tens  = dfm.set_initial_pars( loc_mat[ : , 0:3] )    
     axes[tt]                    = radii
+    
+    #Convert shape_tensor to 6x1 vector
     G_vector[tt]                = dfm.tens2vec( shape_tens )       
     
     
@@ -168,10 +177,9 @@ for tt in range( num_loop ):
     #==============================================================================
         
     loc_mat = md.hertzian_move(  loc_mat )
-
-
+    
     #==============================================================================
-    #   Measure the volume at that time
+    #   Measure the volume of loc_mat at that time
     #==============================================================================
     
     ar_norm         = np.linalg.norm( loc_mat[ : , 0:3] , axis=1 )
@@ -180,25 +188,22 @@ for tt in range( num_loop ):
     pts             = loc_mat[: , 0:3] + ( loc_mat[: , 0:3].T / ar_norm   * 0.5 ).T 
     
     vol[tt]         =  md.convex_hull_volume( pts ) 
-          
-              
+
+
     #==============================================================================
-    #     divide the cells
+    #   Measure the volume of just_move at that time
     #==============================================================================
-          
-    # Cells that have reached cycle time      
-    mitotic_cells1 = np.nonzero( loc_mat[ : , 4 ] > cycle_time[ range( len(loc_mat) ) ] )[0]
     
-    # Cells that are not quescent    
-    mitotic_cells2 = np.nonzero( loc_mat[ : , 3]  > 0 )[0]
-    
-    mitotic_cells =  np.intersect1d( mitotic_cells1 , mitotic_cells2 )
-           
-    if len(mitotic_cells) > 0:
+    just_move = md.hertzian_move(  just_move )
+
+
+    ar_norm         = np.linalg.norm( just_move , axis=1 )
+    ar_norm[ ar_norm==0 ] = 1
         
-        loc_mat = md.cell_divide( loc_mat ,  mitotic_cells , tt)
-                   
-  
+    pts             = just_move + ( just_move.T / ar_norm   * 0.5 ).T 
+    
+    just_move_vol[tt]         =  md.convex_hull_volume( pts ) 
+
 
 end = time.time()
 
@@ -211,7 +216,9 @@ data_dict = {
             'init_loc_mat' : init_loc_mat ,
             'loc_mat' : loc_mat  ,
             'loc_mat_list' : loc_mat_list,
+            'just_move_list' : just_move_list,
             'vol' : vol ,
+            'just_move_vol' : just_move_vol ,            
             'num_loop' : num_loop  ,
             'cycle_time' : cycle_time ,
             'axes' : axes,
@@ -222,13 +229,14 @@ data_dict = {
             'r_overlap' : md.r_overlap ,
             'sim_step' : sim_step ,
             'lam' : lam ,
-            'mu' : mu , 
+            'mu' : mu ,
+            'floc' : floc,
             'gammadot' : gammadot,
             'Gamma' : Gamma
            }
 
 
-fname = 'data_'+ time.strftime( "_%m_%d_%H_%M" , time.localtime() ) +  str( flow_type) +'_deformation.pkl'  
+fname = 'data_'+ time.strftime( "_%m_%d_%H_%M" , time.localtime() ) +  str( flow_type) +'_no_growth.pkl'  
 output_file = open( os.path.join( 'data_files' , fname ) , 'wb')
   
 cPickle.dump(data_dict, output_file)
