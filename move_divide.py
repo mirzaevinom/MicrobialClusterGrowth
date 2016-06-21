@@ -19,13 +19,16 @@ import dla_3d as dla
 #Parameters for cell movement and proliferation
 
 r_cut = 1.25
+
 delta_t = 0.01
+
 r_overlap = 0.75
 
 #Friction rate induced by viscousity of the ECM
 ksi = 1
 
 #Strength of the Lennard-Jones potential for cell-cell adhesion and repulsion
+
 f_strength = 1e-1
 
 #Hetzian repulsion model, see p.419 of Liedekerke
@@ -41,7 +44,8 @@ R_hat = cell_rad / 2
     
 rep_const = 4/3*E_hat * np.sqrt( R_hat )
 
-pull_const = 1
+pull_const = 1000
+
 ###########
 
 
@@ -69,7 +73,7 @@ def lennard_jones_move( loc_mat ,  ksi = ksi , r_overlap = r_overlap ,
         #            magnitude of modified Lennard-Jones force. Equilibrium between 
         #           repulsion and adhesion is set to r_e = 1    
         #==============================================================================
-        force       = 24 * f_strength * ( 1 * ( 1/mag_vec )**12- ( 1/mag_vec )**6  )  /  ( mag_vec**2 )
+        force       = 24 * f_strength * ( 1 * ( 1/mag_vec )**12- ( 1/mag_vec )**6  )  /  ( mag_vec**2 ) 
         
         #Lennard-Jones force vector 
         lj_force    = np.sum ( ( vec.T * force ).T , axis=0 )   
@@ -116,8 +120,9 @@ def hertzian_move( loc_mat ,  ksi = ksi ,  pull_const = pull_const,
         mag_vec2     = mag_vec[ neig ] - 1
         vec2         = vec[ neig ]
             
-        force2    = -0.5 * pull_const * np.pi / ( r_cut - 1 ) * np.cos( 0.5*np.pi * mag_vec2 / ( r_cut - 1 ) )     
+        #force2    = -0.5 * pull_const * np.pi / ( r_cut - 1 ) * np.cos( 0.5*np.pi * mag_vec2 / ( r_cut - 1 ) )     
         
+        force2 = - 0.5 * np.pi * pull_const * np.exp( - (mag_vec2 - 1)**2 / ( 2 * (r_cut -1)**2 )  )
         attr_force    = np.sum ( ( vec2.T * force2 ).T , axis=0 )
         
         loc_mat[ cnum , 0:3]    += delta_t * ( repul_force + attr_force) / ksi  
@@ -178,7 +183,7 @@ def cell_divide( loc_mat , mitotic_cells , tt ,  sphr_shift = sphr_shift):
         if isinstance( loc , np.ndarray ):
             loc_mat[ cnum , 5 ] = 0
             age = 0
-            loc_mat     = np.append( loc_mat , [ [ loc[0] , loc[1] , loc[2] , 1 , age , 0 , tt ] ] , axis=0)
+            loc_mat     = np.append( loc_mat , [ [ loc[0] , loc[1] , loc[2] , 1 , age , 0 , tt ] ] , axis=0 )
         else:
             loc_mat[cnum, 3] = 0
  
@@ -256,9 +261,11 @@ def hex2color(s):
 if __name__ == "__main__":
     
     import mayavi.mlab as mlab
-    import cPickle, os
+    import cPickle, os, time
     import scipy.io as sio
-
+    
+    start = time.time()
+    
     fname = 'large_pneumonia_coords.pkl'
     pkl_file = open(os.path.join( 'data_files' , fname ) , 'rb')
     loc_mat_list = cPickle.load(pkl_file)
@@ -268,13 +275,14 @@ if __name__ == "__main__":
     tau_p = 1
     
     #Number of generations for to be simulated
-    num_gen = 1
+    num_gen = 20
     
     #Loop adjustment due to number of generation and generation time of a single cell
     num_loop = int( tau_p * num_gen / delta_t )
 
     #floc = loc_mat_list[5]
-    floc = dla.dla_generator()
+    #floc = dla.dla_generator()
+    floc = np.load( 'dla_floc.npy')
     
     init_loc_mat = np.zeros( ( len(floc) , 3 ) )
     init_loc_mat = floc
@@ -293,29 +301,77 @@ if __name__ == "__main__":
     mlab.points3d( loc_mat[:, 0], loc_mat[:, 1], loc_mat[:, 2] , 0.5*np.ones( len(loc_mat) ) ,
                    scale_factor=2.0, resolution=20 )
                    
+    img_name = 'restructuring_initial.png'
+    mlab.savefig( os.path.join( 'images' , img_name ) )
+
     
-    f_dims = np.zeros( num_loop )
+    f_dims = []
+    rad_gyr = []
     
     for tt in range( num_loop ):
         
+        if np.mod(tt, int(num_loop / 50 ) - 1 )==0:
+            
+            f_dims.append( fractal_dimension( loc_mat ) )        
     
+            #radius of gyration
+            c_mass = np.mean( loc_mat[: , 0:3] , axis=0 )
+            
+            rad_gyr.append( ( 1 / len(loc_mat) * np.sum( (loc_mat[: , 0:3] - c_mass )**2 ) ) **(1/2) )
+
         #==============================================================================
         #    move the cells    
         #==============================================================================
-        f_dims[ tt ] = fractal_dimension(loc_mat)         
-        loc_mat = hertzian_move(  loc_mat )
-                
         
+        loc_mat = hertzian_move( loc_mat )
+
+                        
+    
     
     mlab.figure( size=(1600 , 1600) , bgcolor=(1,1,1) )
     
     mlab.points3d( loc_mat[:, 0], loc_mat[:, 1], loc_mat[:, 2] , 0.5*np.ones( len(loc_mat) ) ,
                    scale_factor=2.0, resolution=20 )
     
+    img_name = 'restructuring_final.png'
+    mlab.savefig( os.path.join( 'images' , img_name ) )
+
     plt.close('all')
     plt.figure(0)
+    mtime = np.linspace(0, num_loop*delta_t, num_loop )
     plt.plot( f_dims , linewidth=2)
+    img_name = 'restructuring_effect.png'
+    plt.savefig( os.path.join( 'images' , img_name ) , dpi=400, bbox_inches='tight')
+
+    data_dict = {
     
+               'floc' : floc , 
+               'loc_mat' : loc_mat,
+               'f_dims' : f_dims ,
+               'rad_gyr' : rad_gyr , 
+               'num_loop' : num_loop,
+               'delta_t' : delta_t,
+               'tau_p': tau_p , 
+               'r_cut' : r_cut ,
+               'pull_const' : pull_const                          
+               }
+    
+    
+    fname = 'restructuring_'+str(r_cut)+'.pkl'
+    
+    fname = 'restructuring_'+ time.strftime( "_%m_%d_%H_%M" , time.localtime() ) +str(r_cut)+'.pkl'
+    
+    output_file = open( os.path.join( 'data_files' , fname ) , 'wb')
+      
+    cPickle.dump(data_dict, output_file)
+    
+    output_file.close()
+    
+
+    end = time.time()
+    
+    print "Elapsed time " + str( round( (end - start) / 60 , 1)  ) + " minutes"    
+
 
 
 

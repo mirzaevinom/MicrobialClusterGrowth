@@ -13,7 +13,6 @@ from numpy.random import randint
 import numpy as np
 
 
-
 def dla_generator( rad_max = 8 , #maximum radius of the fractal
         
                     num_particles = 3000 #Number of particles
@@ -100,10 +99,14 @@ if __name__=='__main__':
 
     import mayavi.mlab as mlab
     import move_divide as md
+    
+   
 
+    
     pts = dla_generator()
     print md.fractal_dimension( pts )
     
+    np.save('dla_floc' , pts)
     mlab.close(all=True)
     
     cell_color = md.hex2color('#32CD32')
@@ -111,7 +114,19 @@ if __name__=='__main__':
     mlab.figure( size=(1600 , 1600) , bgcolor=(1,1,1) )
     
     mlab.points3d( pts[:, 0], pts[:, 1], pts[:, 2] , scale_factor=1.0, resolution=20, color=cell_color )
+    
+    
+    X = np.random.rand( 4 , 3 )
+    X[-1] = [0, 0, 3]
+   
+    from sklearn.cluster import DBSCAN
+    
+    dbs = DBSCAN(eps=2.0, min_samples = 1)
+    dbs.fit( pts )    
 
+    print len(pts)
+    print len(dbs.core_sample_indices_)
+    
     
 
 

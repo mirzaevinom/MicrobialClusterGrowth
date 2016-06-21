@@ -7,9 +7,8 @@ Created on Wed Jan 27 2016
 """
 
 from __future__ import division
-from scipy.spatial.distance import cdist
+from sklearn.cluster import DBSCAN
 
-from scipy.optimize import curve_fit
 
 import deformation as dfm
 import numpy as np
@@ -17,6 +16,8 @@ import matplotlib.pyplot as plt
 import time, os, cPickle
 import mayavi.mlab as mlab
 import move_divide as md
+
+
 start = time.time()
 
 
@@ -26,10 +27,15 @@ for file in os.listdir("data_files"):
     if file.endswith("growth.pkl"):
         fnames.append(file)
 
-pkl_file = open(os.path.join( 'data_files' , fnames[-1] ) , 'rb')
+myfile = fnames[-1]
+
+pkl_file = open(os.path.join( 'data_files' , myfile ) , 'rb')
+
+ext = '_flow_'+str( myfile[-15] ) + '.png'
 
 data_dict = cPickle.load( pkl_file )        
 pkl_file.close()
+
 
 #Load all the parameters and simulation results from the pkl file
 
@@ -39,7 +45,6 @@ locals().update( data_dict )
 fdim_list = np.zeros( len(loc_mat_list) )
 just_fdim_list = np.zeros( len(loc_mat_list) )
 
-cell_list = np.arange( len(loc_mat_list) )
 
 for nn in range(  len(loc_mat_list) ):
     
@@ -56,15 +61,29 @@ for nn in range(  len(loc_mat_list) ):
 #==============================================================================
 plt.close( 'all' )
 
+fig = plt.figure( 0 )
 
-plt.figure(0)
+ax = fig.add_subplot(111)
 
-plt.plot( cell_list , fdim_list , linewidth=2 , color='blue')
-plt.plot( cell_list , just_fdim_list , linewidth=2 , color='red')
 
- 
+mtime = np.linspace( 0 , num_loop*sim_step, len(loc_mat_list) ) / 60 / 60
+ax.plot( mtime , fdim_list , linewidth=2 , color='blue', label ='with deformation')
+ax.plot( mtime , just_fdim_list , linewidth=2 , color='red', label = 'without deformation')
+
+ax.set_xlabel('Time (h)', fontsize=15)
+ax.set_ylabel( 'Fractal dimension' , fontsize = 15 )
+plt.legend(loc='best', fontsize=20)
+
+img_name = 'fractal dimension'+ext
+plt.savefig( os.path.join( 'images' , img_name ) , dpi=400, bbox_inches='tight')
+
  
 mlab.close(all=True)
+
+
+
+
+floc = just_move_list[-1][0]
 mlab.figure(  bgcolor=(1,1,1) )
 
 cell_color = md.hex2color('#32CD32')
@@ -76,11 +95,12 @@ mlab.points3d( floc[:, 0], floc[:, 1], floc[:, 2] ,
 mlab.view(distance = 75 )
 
 
+img_name = 'final_floc_movement'+ext
+mlab.savefig( os.path.join( 'images' , img_name ) )
+
+
 loc_mat = loc_mat_list[-1][0]
-
 mlab.figure(  bgcolor=(1,1,1) )
-
-cell_color = md.hex2color('#32CD32')
 
 mlab.points3d( loc_mat[:, 0], loc_mat[:, 1], loc_mat[:, 2] , 
                0.5*np.ones( len( loc_mat ) ), scale_factor=2.0 , 
@@ -89,9 +109,21 @@ mlab.points3d( loc_mat[:, 0], loc_mat[:, 1], loc_mat[:, 2] ,
 mlab.view(distance = 75 )
 
 
-img_name = 'sample_floc.png'
-#mlab.savefig( os.path.join( 'images' , img_name ) )
+img_name = 'final_floc_deform'+ext
+mlab.savefig( os.path.join( 'images' , img_name ) )
 
+loc_mat = loc_mat_list[0][0]
+mlab.figure(  bgcolor=(1,1,1) )
+
+mlab.points3d( loc_mat[:, 0], loc_mat[:, 1], loc_mat[:, 2] , 
+               0.5*np.ones( len( loc_mat ) ), scale_factor=2.0 , 
+               resolution=20, color = cell_color  )
+               
+mlab.view(distance = 75 )
+
+
+img_name = 'initial_floc'+ext
+mlab.savefig( os.path.join( 'images' , img_name ) )
 
 
 plt.figure(1)
@@ -121,10 +153,10 @@ end = time.time()
 plt.figure(2)
 
 
-xdata = delta_t * np.arange( len( vol ) )
+xdata = sim_step * np.arange( len( deform_radg ) )
 
-plt.plot( xdata , vol , linewidth=2, color='blue')
-plt.plot( xdata , just_move_vol , linewidth=2, color='red')
+plt.plot( xdata , deform_radg , linewidth=2, color='blue')
+plt.plot( xdata , move_radg , linewidth=2, color='red')
 
 plt.xlabel( 'Time' )
 plt.ylabel( 'Aggregate volume' )
@@ -151,19 +183,34 @@ ax.set_aspect('equal')
 dfm.plotEllipsoid( radii ,  ax=ax, plotAxes=True )
 
 #Change the view angle and elevation
-ax.view_init( azim=-10, elev=30 )
+ax.view_init( azim=-60, elev=15 )
+
+img_name = 'cluster_ellipsoid'+ext
+plt.savefig( os.path.join( 'images' , img_name ) , dpi=400, bbox_inches='tight')
 
 
-img_name = 'cluster_ellipsoid.png'
-#plt.savefig( os.path.join( 'images' , img_name ) , dpi=400, bbox_inches='tight')
+if len(frag_list)>1:
+    plt.figure(4)
+    
+    plt.hist( frag_list , 50, normed=False, alpha=0.6, color='g')  # plt.hist passes it's arguments to np.histogram
+    plt.title("Histogram of fragments with deformation")
+    plt.show()
+
+
+if len(move_frag_list)>1:
+    plt.figure(5)
+    
+    plt.hist( move_frag_list , 50, normed=False, alpha=0.6, color='g')  # plt.hist passes it's arguments to np.histogram
+    plt.title("Histogram of fragments without deformation")
+    plt.show()
 
 
 end = time.time()
 
 
 print 'Number of cells at the end ' + str( len(loc_mat) )
-print 'Viscosity ratio', lam
-print 'Max volume', round( np.max( vol ) , 2 )
 print 'Time elapsed ',  round( ( end - start ) , 2 ) , ' seconds'
+
+
 
 
