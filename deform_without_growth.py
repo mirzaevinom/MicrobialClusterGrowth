@@ -37,7 +37,7 @@ if flow_type == 0:
     
 elif flow_type ==1:
     
-    # Simple shear in multiple directions
+    # flow in multiple directions
     L[0,1] = gammadot
     L[1, 2] = gammadot
     #L[0, 2] = gammadot/3
@@ -53,7 +53,7 @@ else:
     raise Exception("Please specify a valid flow type")
 
 #deformation of the floc is enquired every t1 times, in seconds
-sim_step = 20
+sim_step = 1
 
 # time step used for deformation equations
 dt = 1e-1 / gammadot
@@ -68,11 +68,10 @@ tau_p = 30*60
 
 ###########
 #Number of generations for to be simulated
-num_gen = 10
+num_gen = 1
 
 #Loop adjustment due to number of generation and generation time of a single cell
 num_loop = int( tau_p * num_gen / sim_step )
-
 
 #==============================================================================
 # location matrix loc_mat  -- coordinate1--coordinate2--coordinate3-- living or 
@@ -165,7 +164,7 @@ for tt in range( num_loop ):
         
     #Append loc_mat at each half generation
     
-    if np.mod(tt, int( num_loop / num_gen / 2 ) -1 )==0:
+    if np.mod(tt, int( num_loop / 50 ) -1 )==0 or tt == num_loop - 1:
         
         loc_mat_list.append([ loc_mat.copy() , tt])
         just_move_list.append( [ just_move.copy() , tt ] )

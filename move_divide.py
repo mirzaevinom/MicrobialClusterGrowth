@@ -18,7 +18,7 @@ import dla_3d as dla
 ########
 #Parameters for cell movement and proliferation
 
-r_cut = 1.25
+r_cut = 1.50
 
 delta_t = 0.01
 
@@ -40,11 +40,12 @@ pois_num = 0.4
 E_hat = 0.5 * young_mod / (1 - pois_num**2) 
 
 cell_rad = 0.5
+
 R_hat = cell_rad / 2
     
 rep_const = 4/3*E_hat * np.sqrt( R_hat )
 
-pull_const = 1000
+pull_const = 0.5
 
 ###########
 
@@ -120,9 +121,10 @@ def hertzian_move( loc_mat ,  ksi = ksi ,  pull_const = pull_const,
         mag_vec2     = mag_vec[ neig ] - 1
         vec2         = vec[ neig ]
             
-        #force2    = -0.5 * pull_const * np.pi / ( r_cut - 1 ) * np.cos( 0.5*np.pi * mag_vec2 / ( r_cut - 1 ) )     
+        force2    = -0.5 * pull_const * np.pi / ( r_cut - 1 ) * np.cos( 0.5*np.pi * mag_vec2 / ( r_cut - 1 ) )     
         
-        force2 = - 0.5 * np.pi * pull_const * np.exp( - (mag_vec2 - 1)**2 / ( 2 * (r_cut -1)**2 )  )
+        #force2 = - 0.5 * np.pi * pull_const * np.exp( - (mag_vec2 - 1)**2 / ( 2 * (r_cut -1)**2 )  )
+        
         attr_force    = np.sum ( ( vec2.T * force2 ).T , axis=0 )
         
         loc_mat[ cnum , 0:3]    += delta_t * ( repul_force + attr_force) / ksi  
@@ -275,7 +277,7 @@ if __name__ == "__main__":
     tau_p = 1
     
     #Number of generations for to be simulated
-    num_gen = 20
+    num_gen = 5
     
     #Loop adjustment due to number of generation and generation time of a single cell
     num_loop = int( tau_p * num_gen / delta_t )
@@ -338,8 +340,8 @@ if __name__ == "__main__":
 
     plt.close('all')
     plt.figure(0)
-    mtime = np.linspace(0, num_loop*delta_t, num_loop )
-    plt.plot( f_dims , linewidth=2)
+    mtime = np.linspace(0, num_loop*delta_t, len(f_dims) )
+    plt.plot( mtime,  f_dims , linewidth=2)
     img_name = 'restructuring_effect.png'
     plt.savefig( os.path.join( 'images' , img_name ) , dpi=400, bbox_inches='tight')
 
@@ -357,15 +359,14 @@ if __name__ == "__main__":
                }
     
     
-    fname = 'restructuring_'+str(r_cut)+'.pkl'
-    
+    """
     fname = 'restructuring_'+ time.strftime( "_%m_%d_%H_%M" , time.localtime() ) +str(r_cut)+'.pkl'
     
     output_file = open( os.path.join( 'data_files' , fname ) , 'wb')
       
     cPickle.dump(data_dict, output_file)
     
-    output_file.close()
+    output_file.close()"""
     
 
     end = time.time()

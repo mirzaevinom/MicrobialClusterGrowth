@@ -1,0 +1,1 @@
+Our main goal in this project is to develop an agent-based model of microbial growth which also incorporates properties of the flow field.

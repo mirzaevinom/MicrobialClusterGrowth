@@ -33,9 +33,10 @@ pkl_file = open(os.path.join( 'data_files' , myfile ) , 'rb')
 
 ext = '_flow_'+str( myfile[-15] ) + '.png'
 
-data_dict = cPickle.load( pkl_file )        
+data_dict_list = cPickle.load( pkl_file )        
 pkl_file.close()
 
+data_dict = data_dict_list[0]
 
 #Load all the parameters and simulation results from the pkl file
 
@@ -80,13 +81,27 @@ plt.savefig( os.path.join( 'images' , img_name ) , dpi=400, bbox_inches='tight')
  
 mlab.close(all=True)
 
+cell_color = md.hex2color('#32CD32')
+
+loc_mat = loc_mat_list[0][0]
+mlab.figure(  bgcolor=(1,1,1) )
+
+mlab.points3d( loc_mat[:, 0], loc_mat[:, 1], loc_mat[:, 2] , 
+               0.5*np.ones( len( loc_mat ) ), scale_factor=2.0 , 
+               resolution=20, color = cell_color  )
+               
+mlab.view(distance = 75 )
+
+
+img_name = 'initial_floc'+ext
+mlab.savefig( os.path.join( 'images' , img_name ) )
 
 
 
 floc = just_move_list[-1][0]
 mlab.figure(  bgcolor=(1,1,1) )
 
-cell_color = md.hex2color('#32CD32')
+
 
 mlab.points3d( floc[:, 0], floc[:, 1], floc[:, 2] , 
                0.5*np.ones( len( floc ) ), scale_factor=2.0 , 
@@ -112,19 +127,6 @@ mlab.view(distance = 75 )
 img_name = 'final_floc_deform'+ext
 mlab.savefig( os.path.join( 'images' , img_name ) )
 
-loc_mat = loc_mat_list[0][0]
-mlab.figure(  bgcolor=(1,1,1) )
-
-mlab.points3d( loc_mat[:, 0], loc_mat[:, 1], loc_mat[:, 2] , 
-               0.5*np.ones( len( loc_mat ) ), scale_factor=2.0 , 
-               resolution=20, color = cell_color  )
-               
-mlab.view(distance = 75 )
-
-
-img_name = 'initial_floc'+ext
-mlab.savefig( os.path.join( 'images' , img_name ) )
-
 
 plt.figure(1)
 
@@ -135,7 +137,8 @@ mean_deform = np.mean( deform_rate )
 
 print 'Mean deformation', round(mean_deform, 2)*100, 'percent'
 
-myt = delta_t * np.arange( len(axes) )
+myt = np.linspace( 0, sim_step*num_loop/60/60, len(axes))
+
 line1, = plt.plot( myt, axes[:, 0], color='b' , label='a')
 line2, = plt.plot( myt, axes[:, 1], color='r' , label='b')
 line3, = plt.plot( myt, axes[:, 2], color='g' , label='c')
@@ -153,13 +156,13 @@ end = time.time()
 plt.figure(2)
 
 
-xdata = sim_step * np.arange( len( deform_radg ) )
+xdata = np.linspace( 0, sim_step*num_loop/60/60, len(deform_radg))
 
-plt.plot( xdata , deform_radg , linewidth=2, color='blue')
-plt.plot( xdata , move_radg , linewidth=2, color='red')
+plt.plot( xdata , deform_radg , linewidth=1, color='blue')
+plt.plot( xdata , move_radg , linewidth=1, color='red')
 
-plt.xlabel( 'Time' )
-plt.ylabel( 'Aggregate volume' )
+plt.xlabel( 'Dimensionless time' , fontsize = 15 )
+plt.ylabel( 'Radius of gyration' , fontsize = 15)
 
 
 fig = plt.figure( 3 , figsize=(15, 15) , frameon=False)
@@ -207,7 +210,7 @@ if len(move_frag_list)>1:
 
 end = time.time()
 
-
+print myfile[-15], sim_step
 print 'Number of cells at the end ' + str( len(loc_mat) )
 print 'Time elapsed ',  round( ( end - start ) , 2 ) , ' seconds'
 

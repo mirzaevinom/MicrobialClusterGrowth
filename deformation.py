@@ -396,6 +396,7 @@ def deform(t0, t1 , dt, G0v , lam , mu , L , Gamma ):
           fin_yout = opt[0][-1]
     else:
         fin_yout = G0v
+        print 'Integration did not converge!'
 
     axes , V = dropAxes( fin_yout )
   

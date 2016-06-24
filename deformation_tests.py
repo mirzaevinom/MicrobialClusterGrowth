@@ -21,33 +21,49 @@ import time, cPickle, os
 lam, mu, gammadot, Gamma= import_constants()
 
 # set the initial axes
-a0 = np.array( [ 12.0, 11.0 , 10.0 ] )
+a0 = np.array( [ 5.0, 5.0 , 5.0 ] )
 #a0 = np.sort( 1 + 10*np.random.rand(3) )[::-1]
 
 t0 = 0
-t1 = 20
+sim_step = 2
 
 dt = 1e-1 / gammadot
 
 start = time.time()
 # set up the matrix velocity gradient L defined by du/dy=gammadot
-L = np.zeros( [3,3] )
-L[0,1] = gammadot
 
-L[1, 2] = gammadot
-#L[0, 2] = gammadot/3
 
-#Elongational flow
-#L[0,0] = 2*gammadot
-#L[1, 1] = -gammadot
-#L[2, 2] = -gammadot
-#L *=0.01
+L = np.zeros([3,3])
 
+flow_type = 0
+
+if flow_type == 0:
+    # Simple shear in one direction
+    L[0,1] = gammadot
+    
+elif flow_type ==1:
+    
+    # flow in multiple directions
+    L[0,1] = gammadot
+    L[1, 2] = gammadot
+    #L[0, 2] = gammadot/3
+
+elif flow_type == 2:
+    
+    #Elongational flow
+    L[0,0] = gammadot
+    L[1, 1] = -gammadot
+    #L[2, 2] = -gammadot
+    #L *= 0.1
+else:
+    raise Exception("Please specify a valid flow type")
+    
+    
 # set up the initial shape tensor
 G0 = np.diag( 1.0 / a0**2 )
 G0v = dfm.tens2vec( G0 )
 
-a1 = dfm.deform(t0, t1 , dt , G0v , lam , mu , L , Gamma )[0]
+a1 = dfm.deform(t0, sim_step , dt , G0v , lam , mu , L , Gamma )[0]
 
 print a1
 print a1/a0
@@ -60,7 +76,7 @@ end = time.time()
 print 'Time elapsed' , round( end - start, 2), 'seconds'
 
 
-axes = dfm.evolve(t0, t1 , dt , G0v , lam , mu , L , Gamma )
+axes = dfm.evolve(t0, sim_step , dt , G0v , lam , mu , L , Gamma )
 
 taylor_deform  = np.max( ( axes[:, 0] - axes[:, 2] ) / ( axes[:, 0] + axes[:, 2]) )
 
@@ -80,7 +96,7 @@ plt.figure(0)
 plt.plot(axes)
 
 
-
+"""
 points = 10*np.random.rand(10**4, 3)
 points  = points - np.mean(points , axis=0)
 dists = np.sum( points**2 , axis=1)
@@ -96,7 +112,7 @@ points = points * np.array([ 10 , 10 , 1 ])
 #points = np.array(cells).T
 
 
-fig = plt.figure(0)
+fig = plt.figure(1)
 
 pts , radii , A = dfm.set_initial_pars(points)
 print radii
@@ -113,7 +129,7 @@ dfm.plotEllipsoid( radii ,  ax=ax, plotAxes=True )
 #Change the view angle and elevation
 ax.view_init( azim=-10, elev=30 )
 
-"""
+
 fig = plt.figure(1)
 
 (pts, radii , shape_tens) = dfm.get_body_ellipse(points)

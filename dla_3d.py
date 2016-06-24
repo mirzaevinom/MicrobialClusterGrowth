@@ -13,9 +13,9 @@ from numpy.random import randint
 import numpy as np
 
 
-def dla_generator( rad_max = 8 , #maximum radius of the fractal
+def dla_generator( rad_max = 10 , #maximum radius of the fractal
         
-                    num_particles = 3000 #Number of particles
+                    num_particles = 5000 #Number of particles
                     ):
     #==============================================================================
     # Random empty spot search for cell division
@@ -48,7 +48,7 @@ def dla_generator( rad_max = 8 , #maximum radius of the fractal
     
     
     #the radius at which particles are released
-    rad_create = rad_max + 2
+    rad_create = rad_max + 3
     
     #radius at which particle is killed
     rad_kill = 2*rad_max
@@ -100,10 +100,7 @@ if __name__=='__main__':
     import mayavi.mlab as mlab
     import move_divide as md
     
-   
-
-    
-    pts = dla_generator()
+    pts = dla_generator( num_particles = 4500)
     print md.fractal_dimension( pts )
     
     np.save('dla_floc' , pts)
@@ -124,8 +121,8 @@ if __name__=='__main__':
     dbs = DBSCAN(eps=2.0, min_samples = 1)
     dbs.fit( pts )    
 
-    print len(pts)
-    print len(dbs.core_sample_indices_)
+    print len( pts )
+    print len( dbs.core_sample_indices_ )
     
     
 
