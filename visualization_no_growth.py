@@ -16,18 +16,60 @@ import matplotlib.pyplot as plt
 import time, os, cPickle
 import mayavi.mlab as mlab
 import move_divide as md
-
+from tvtk.api import tvtk
 
 start = time.time()
 
 
 fnames = []
 
+flow_type = '0'
+
 for file in os.listdir("data_files"):
-    if file.endswith("growth.pkl"):
+    if file.endswith("growth.pkl") and file[-15]==flow_type:
         fnames.append(file)
 
-myfile = fnames[-1]
+deform_fdims = []
+move_fdims  = []
+
+for mm in range(len(fnames)):
+    
+    myfile = fnames[mm]
+    
+    pkl_file = open(os.path.join( 'data_files' , myfile ) , 'rb')
+    
+    data_dict_list = cPickle.load( pkl_file )
+    pkl_file.close()
+
+    for nn in range( len(data_dict_list) ):
+        
+        data_dict = data_dict_list[nn]
+        
+        if len( data_dict['frag_list'] )>0:
+            if np.max( data_dict['frag_list']) > len(data_dict['loc_mat_list'][-1][0] ):
+                print myfile
+
+        if len(data_dict['move_frag_list'])>0:            
+            if np.max( data_dict['move_frag_list']) > len(data_dict['just_move_list'][-1][0] ):
+                print myfile
+            
+        loc_mat = data_dict['loc_mat_list'][-1][0]
+        deform_fdims.append( [ len(data_dict['loc_mat_list'][0][0]) , md.fractal_dimension( loc_mat ) ] )
+
+        just_move = data_dict['just_move_list'][-1][0]
+        move_fdims.append( [ len(data_dict['just_move_list'][0][0]), md.fractal_dimension( just_move ) ] )        
+        
+
+deform_fdims = np.asarray( deform_fdims)    
+move_fdims   = np.asarray( move_fdims )
+
+deform_fdims[ deform_fdims[:,1]>3, 1] = 3
+move_fdims[move_fdims[:,1]>3 , 1] = 3
+#Load all the parameters and simulation results from the pkl file
+
+
+
+myfile = fnames[1]
 
 pkl_file = open(os.path.join( 'data_files' , myfile ) , 'rb')
 
@@ -36,10 +78,10 @@ ext = '_flow_'+str( myfile[-15] ) + '.png'
 data_dict_list = cPickle.load( pkl_file )        
 pkl_file.close()
 
-data_dict = data_dict_list[0]
 
-#Load all the parameters and simulation results from the pkl file
 
+
+data_dict = data_dict_list[4]
 locals().update( data_dict )
 
 
@@ -61,6 +103,7 @@ for nn in range(  len(loc_mat_list) ):
 #  Visualization   
 #==============================================================================
 plt.close( 'all' )
+
 
 fig = plt.figure( 0 )
 
@@ -164,7 +207,7 @@ plt.plot( xdata , move_radg , linewidth=1, color='red')
 plt.xlabel( 'Dimensionless time' , fontsize = 15 )
 plt.ylabel( 'Radius of gyration' , fontsize = 15)
 
-
+"""
 fig = plt.figure( 3 , figsize=(15, 15) , frameon=False)
 fig.patch.set_alpha( 0.0 )
 
@@ -190,6 +233,7 @@ ax.view_init( azim=-60, elev=15 )
 
 img_name = 'cluster_ellipsoid'+ext
 plt.savefig( os.path.join( 'images' , img_name ) , dpi=400, bbox_inches='tight')
+"""
 
 
 if len(frag_list)>1:
@@ -208,7 +252,83 @@ if len(move_frag_list)>1:
     plt.show()
 
 
+
+fig = plt.figure( 6 )
+
+ax = fig.add_subplot(111)
+
+#ax.scatter( deform_fdims[:, 0] , deform_fdims[:, 1]  , color='blue', label ='with deformation')
+#ax.scatter( move_fdims[:, 0] , move_fdims[:, 1] , color='red', label = 'without deformation')
+
+bar_width = 20
+opacity = 0.8
+
+ax.bar( deform_fdims[:, 0] , deform_fdims[:, 1]  , width=bar_width , 
+       alpha=opacity , color='blue', label ='with deformation')
+ax.bar( move_fdims[:, 0] , move_fdims[:, 1] , width=bar_width , 
+       alpha=opacity , color='red', label = 'without deformation')
+
+ax.set_xlabel('Number of cells of a floc', fontsize=15)
+ax.set_ylabel( 'Fractal dimension at the end of simulation' , fontsize = 15 )
+plt.legend(loc='best', fontsize=10)
+
+
+#==============================================================================
+# plot ellipsoid around the cells 
+#==============================================================================
+
+
+cell_color = md.hex2color('#32CD32')
+ellipse_color = md.hex2color('#87CEFA') 
+
+fig = mlab.figure( size=(1600 , 1600) , bgcolor=(1,1,1) )
+
+floc = loc_mat[:, 0:3]
+    
+
+floc , radii , A = dfm.set_initial_pars(floc)
+
+[a,b, c] = radii
+
+
+mlab.points3d( floc[:, 0], floc[:, 1], floc[:, 2] , 
+               0.5*np.ones( len( floc ) ), scale_factor=2.0 , 
+               resolution=20, color = cell_color  )
+
+                        
+
+# draw an ellipsoid
+engine = fig.parent
+fig.scene.disable_render = True # for speed
+point = np.array([0, 0, 0])
+# tensor seems to require 20 along the diagonal for the glyph to be the expected size
+tensor = np.array([20, 0, 0,
+                   0, 20, 0,
+                   0, 0, 20])
+data = tvtk.PolyData(points=[point])
+data.point_data.tensors = [tensor]
+data.point_data.tensors.name = 'some_name'
+data.point_data.scalars = [12]
+glyph = mlab.pipeline.tensor_glyph(data)
+glyph.glyph.glyph_source.glyph_source.theta_resolution = 50
+glyph.glyph.glyph_source.glyph_source.phi_resolution = 50
+
+actor = glyph.actor # mayavi actor, actor.actor is tvtk actor
+actor.property.opacity = 0.5
+actor.property.color = ellipse_color
+actor.mapper.scalar_visibility = False
+actor.property.backface_culling = True # gets rid of weird rendering artifact when opacity is < 1
+actor.actor.scale = a, b, c
+fig.scene.disable_render = False
+
+mlab.view( 120, 150, 100)     
+img_name = 'cluster_ellipsoid'+ext
+
+mlab.savefig( os.path.join( 'images' , img_name ) )
+
 end = time.time()
+
+
 
 print myfile[-15], sim_step
 print 'Number of cells at the end ' + str( len(loc_mat) )

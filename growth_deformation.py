@@ -50,7 +50,7 @@ elif flow_type == 2:
 
 
 #deformation of the floc is enquired every t1 times, in seconds
-sim_step = 20
+sim_step = 1
 
 # time step used for deformation equations
 dt = 1e-1 / gammadot
@@ -77,7 +77,7 @@ num_loop = int( tau_p * num_gen / sim_step )
 #==============================================================================
 
 
-"""
+
 init_loc_mat  = np.array([ [0 , 0 , 0 , 1 , 0, 0 , 0] , 
                            [0 , 1 , 0 , 1 , 0.4, 0 , 0] , 
                            [0 , 0 , 1 , 1 , 0.3, 0 , 0] , 
@@ -92,7 +92,7 @@ floc = loc_mat_list[1]
 
 
 
-floc = dla.dla_generator()
+floc = dla.dla_generator( num_particels = 2000 )
 
 #dla_mat = sio.loadmat( 'test.mat' )[ 'map' ]
 #
@@ -105,7 +105,7 @@ floc = dla.dla_generator()
 init_loc_mat = np.zeros( ( len(floc) , 7 ) )
 init_loc_mat[ : , 0:3 ] = floc
 init_loc_mat[ : , 3 ] = 1
-
+"""
 
 
 shape = 60
@@ -133,7 +133,7 @@ for tt in range( num_loop ):
     
     #Append loc_mat at each half generation
     
-    if np.mod(tt, int( num_loop / num_gen / 5 ) -1 )==0:
+    if np.mod(tt, int( num_loop / 10 ) -1 )==0 or tt == num_loop - 1:
         loc_mat_list.append([loc_mat])
     
     loc_mat[: , 4] = loc_mat[: , 4] + sim_step

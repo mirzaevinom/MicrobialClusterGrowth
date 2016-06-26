@@ -83,7 +83,6 @@ def deform_floc( num_particles ):
     #==============================================================================
     
     
-
     floc = dla.dla_generator( num_particles = num_particles )
       
     init_loc_mat = np.zeros( ( len(floc) , 7 ) )
@@ -112,12 +111,13 @@ def deform_floc( num_particles ):
     
     for tt in range( num_loop ):
     
-    
+        
         dbs.fit( loc_mat[:, 0:3] )    
         aa = dbs.labels_
     
         if np.max(aa)>0:
-            loc_mat = loc_mat[ np.nonzero( aa==0 ) ]
+            core_floc  = np.argmax( np.bincount( aa ) )
+            loc_mat = loc_mat[ np.nonzero( aa== core_floc ) ]
             #Add the fragments to a list
             frag_list.extend( np.bincount( aa )[1:] )
     
@@ -126,7 +126,8 @@ def deform_floc( num_particles ):
         bb = dbs.labels_
         
         if np.max(bb)>0:
-            just_move = just_move[ np.nonzero( bb==0 ) ]
+            core_floc  = np.argmax( np.bincount( bb ) )
+            just_move = just_move[ np.nonzero( bb== core_floc ) ]
             #Add the fragments to a list
             move_frag_list.extend( np.bincount( bb )[1:] )
             
@@ -188,9 +189,7 @@ def deform_floc( num_particles ):
         c_mass = np.mean( just_move[: , 0:3] , axis=0 )
         
         move_radg[tt] =  ( 1 / len(just_move) * np.sum( ( just_move[: , 0:3] - c_mass )**2 ) ) **(1/2)
-   
-
-     
+        
     data_dict = {
                 'init_loc_mat' : init_loc_mat ,
                 'loc_mat' : loc_mat  ,
@@ -225,11 +224,11 @@ if __name__=='__main__':
     start = time.time()
     print time.strftime( "%H_%M" , time.localtime() )
     #Usually number of CPUs is good number for number of proccess
-    #pool = Pool( processes = 5 )
-    ey_nana = np.arange( 3000, 5500 , 500)
+    pool = Pool( processes = 3 )
+    ey_nana = np.arange( 2000, 5000 , 500)
 
-    #result = pool.map( deform_floc , ey_nana )
-    result = map( deform_floc , ey_nana )
+    result = pool.map( deform_floc , ey_nana )
+    #result = map( deform_floc , ey_nana )
     
     fname = 'data_'+ time.strftime( "_%m_%d_%H_%M" , time.localtime() ) +  str( flow_type ) +'_no_growth.pkl'  
     output_file = open( os.path.join( 'data_files' , fname ) , 'wb')

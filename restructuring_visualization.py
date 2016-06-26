@@ -52,8 +52,12 @@ mlab.close(all=True)
 
 mlab.figure( size=(1600 , 1600) , bgcolor=(1,1,1) )
 
+
 mlab.points3d( floc[:, 0], floc[:, 1], floc[:, 2] , 0.5*np.ones( len(floc) ) ,
                scale_factor=2.0, resolution=20 , color = cell_color)
+mlab.view(-176, 120, 72)
+mlab.title( 'Number of cells ' + str(len(floc ) ) , color = (0, 0, 0) , height=1.01, size=0.2)
+
                
 img_name = 'restructuring_initial.png'
 mlab.savefig( os.path.join( 'images' , img_name ) )
@@ -62,8 +66,13 @@ mlab.savefig( os.path.join( 'images' , img_name ) )
 
 mlab.figure( size=(1600 , 1600) , bgcolor=(1,1,1) )
 
+
 mlab.points3d( loc_mat[:, 0], loc_mat[:, 1], loc_mat[:, 2] , 0.5*np.ones( len(loc_mat) ) ,
                scale_factor=2.0, resolution=20 , color = cell_color)
+
+mlab.view(-176, 120, 72)
+mlab.title( 'Number of cells ' + str(len(loc_mat ) ) , color = (0, 0, 0) , height=1.01 , size=0.2 )
+
 
 img_name = 'restructuring_final.png'
 mlab.savefig( os.path.join( 'images' , img_name ) )
@@ -71,25 +80,19 @@ mlab.savefig( os.path.join( 'images' , img_name ) )
 plt.close('all')
 
 
-plt.figure(0)
+f, ax = plt.subplots(2, sharex=True)
+
 
 mtime = np.linspace(0, num_loop*delta_t , len( f_dims ) )
-plt.plot( mtime, f_dims , linewidth=2)
-plt.xlabel('Nondimensional time', fontsize=15)
-plt.ylabel('Fractal dimension', fontsize=15)
+ax[0].plot( mtime, f_dims , linewidth=2)
+ax[1].plot( mtime, rad_gyr , linewidth=2)
+
+ax[1].set_xlabel('Time (h)', fontsize=15)
+ax[0].set_ylabel('Fractal dimension', fontsize=15)
+ax[1].set_ylabel('Radius of gyration', fontsize=15)
+
 
 img_name = 'restructuring_frac_dim.png'
-plt.savefig( os.path.join( 'images' , img_name ) , dpi=400, bbox_inches='tight')
-
-
-plt.figure(1)
-
-mtime = np.linspace(0, num_loop*delta_t , len(rad_gyr) )
-plt.plot( mtime, rad_gyr , linewidth=2)
-plt.xlabel( 'Nondimensional time', fontsize = 15 )
-plt.ylabel( 'Radius of gyration', fontsize = 15 )
-
-img_name = 'restructuring_rad_gyr.png'
 plt.savefig( os.path.join( 'images' , img_name ) , dpi=400, bbox_inches='tight')
 
 end = time.time()

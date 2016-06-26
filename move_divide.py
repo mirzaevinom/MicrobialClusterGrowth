@@ -90,7 +90,7 @@ def hertzian_move( loc_mat ,  ksi = ksi ,  pull_const = pull_const,
     N = len(loc_mat)               
     indices = np.arange(N)
                
-    for cnum in xrange( N ):
+    for cnum in np.random.permutation( np.arange( N ) ):
 
         vec         = loc_mat[ cnum , 0:3] - loc_mat[ indices != cnum , 0:3]
         
@@ -277,7 +277,7 @@ if __name__ == "__main__":
     tau_p = 1
     
     #Number of generations for to be simulated
-    num_gen = 5
+    num_gen = 15
     
     #Loop adjustment due to number of generation and generation time of a single cell
     num_loop = int( tau_p * num_gen / delta_t )
@@ -359,14 +359,14 @@ if __name__ == "__main__":
                }
     
     
-    """
+    
     fname = 'restructuring_'+ time.strftime( "_%m_%d_%H_%M" , time.localtime() ) +str(r_cut)+'.pkl'
     
     output_file = open( os.path.join( 'data_files' , fname ) , 'wb')
       
     cPickle.dump(data_dict, output_file)
     
-    output_file.close()"""
+    output_file.close()
     
 
     end = time.time()

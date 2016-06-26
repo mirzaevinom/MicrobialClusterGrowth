@@ -100,7 +100,7 @@ if __name__=='__main__':
     import mayavi.mlab as mlab
     import move_divide as md
     
-    pts = dla_generator( num_particles = 4500)
+    pts = dla_generator( num_particles = 4000)
     print md.fractal_dimension( pts )
     
     np.save('dla_floc' , pts)
