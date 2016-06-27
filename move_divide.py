@@ -12,7 +12,6 @@ from scipy.spatial import ConvexHull
 
 
 import numpy as np
-import matplotlib.pyplot as plt
 import dla_3d as dla
 
 ########
@@ -161,7 +160,7 @@ def cell_divide( loc_mat , mitotic_cells , tt ,  sphr_shift = sphr_shift):
     N = len(loc_mat)               
     indices = np.arange(N) 
     
-    for cnum in mitotic_cells:
+    for cnum in np.random.permutation( mitotic_cells ):
         
          
         neighbors = loc_mat[ indices[ indices != cnum] , 0:3 ]
@@ -245,26 +244,14 @@ def fractal_dimension(loc_mat):
     lin_fit     = np.polyfit(  np.log( rad_gyr) , np.log( cells_gyr ) , 1 )
      
     return lin_fit[0]
-    
-
-def hex2color(s):
-    
-    "Convert hex string (like html uses, eg, #efefef ) to a r,g,b tuple"
-
-    if s.find('#')!=0 or len(s)!=7:
-        raise ValueError('s must be a hex string like "#efefef#')
-
-    r,g,b = map(lambda x: int('0x' + x, 16)/256.0, (s[1:3], s[3:5], s[5:7]))
-
-    return r,g,b
-    
-    
+        
 
 if __name__ == "__main__":
     
     import mayavi.mlab as mlab
     import cPickle, os, time
     import scipy.io as sio
+    import matplotlib.pyplot as plt
     
     start = time.time()
     

@@ -507,58 +507,6 @@ def get_body_ellipse(points):
     return ( points, radii , shape_tens )
 
 
-   
-def plotEllipsoid( radii , center=np.array( [0,0,0] ) ,  rotation = np.identity(3) , 
-                   ax=None, plotAxes=False, cageColor='b', cageAlpha=0.2):
-
-    """Given axis length of an ellipsoid, plot the ellipsoid in body frame.
-    
-    The code is due to Michael Imelfort, see the documentation at    
-    https://github.com/minillinim/ellipsoid
-
-    """
-    
-    make_ax = ax == None
-    if make_ax:
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-        
-    u = np.linspace(0.0, 2.0 * np.pi, 100)
-    v = np.linspace(0.0, np.pi, 100)
-    
-    # cartesian coordinates that correspond to the spherical angles:
-    x = radii[0] * np.outer(np.cos(u), np.sin(v))
-    y = radii[1] * np.outer(np.sin(u), np.sin(v))
-    z = radii[2] * np.outer(np.ones_like(u), np.cos(v))
-    # rotate accordingly
-    for i in range(len(x)):
-        for j in range(len(x)):
-            [x[i,j],y[i,j],z[i,j]] = np.dot([x[i,j],y[i,j],z[i,j]], rotation) + center
-
-    if plotAxes:
-        # make some purdy axes
-        axes = np.array([[radii[0],0.0,0.0],
-                         [0.0,radii[1],0.0],
-                         [0.0,0.0,radii[2]]])
-        # rotate accordingly
-        for i in range(len(axes)):
-            axes[i] = np.dot(axes[i], rotation)
-
-        # plot axes
-        for p in axes:
-            X3 = np.linspace(-p[0], p[0], 100) + center[0]
-            Y3 = np.linspace(-p[1], p[1], 100) + center[1]
-            Z3 = np.linspace(-p[2], p[2], 100) + center[2]
-            ax.plot(X3, Y3, Z3, color=cageColor, linewidth=2)
-
-    # plot ellipsoid
-    ax.plot_wireframe(x, y, z,  rstride=4, cstride=4, color=cageColor, alpha=cageAlpha)
-    
-    if make_ax:
-        plt.show()
-        plt.close(fig)
-        del fig
-
 
 def set_initial_pars(data_raw):                                                 
     """ Given an Mx3 array of coordinates, returns (1) the coordinates in the     

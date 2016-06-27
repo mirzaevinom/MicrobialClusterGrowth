@@ -8,7 +8,7 @@ Created on Wed Jan 27 2016
 
 from __future__ import division
 from sklearn.cluster import DBSCAN
-
+from scipy.spatial.distance import cdist
 
 import deformation as dfm
 import numpy as np
@@ -16,7 +16,10 @@ import matplotlib.pyplot as plt
 import time, os, cPickle
 import mayavi.mlab as mlab
 import move_divide as md
-from tvtk.api import tvtk
+
+import visual_functions as vf
+
+
 
 start = time.time()
 
@@ -60,8 +63,26 @@ for mm in range(len(fnames)):
         move_fdims.append( [ len(data_dict['just_move_list'][0][0]), md.fractal_dimension( just_move ) ] )        
         
 
-deform_fdims = np.asarray( deform_fdims)    
+deform_fdims = np.asarray( deform_fdims)
+deform_fdims = np.sort( deform_fdims , axis=0 )
+
+
+# for the visualization purposes delete the floc with almost same number cells 
+bb = deform_fdims.copy()
+bb[:,1] = 0
+
+mydist = cdist( bb , bb , p=1 )
+mydist +=30*np.triu( np.ones_like( mydist ) )    
+indice = np.nonzero( np.min(mydist, axis=1)>20 )[0]
+
+deform_fdims = deform_fdims[ indice ]
+
+
 move_fdims   = np.asarray( move_fdims )
+move_fdims = np.sort( move_fdims , axis=0 )    
+
+# for the visualization purposes delete the floc with almost same number cells 
+move_fdims = move_fdims[ indice ]
 
 deform_fdims[ deform_fdims[:,1]>3, 1] = 3
 move_fdims[move_fdims[:,1]>3 , 1] = 3
@@ -124,7 +145,7 @@ plt.savefig( os.path.join( 'images' , img_name ) , dpi=400, bbox_inches='tight')
  
 mlab.close(all=True)
 
-cell_color = md.hex2color('#32CD32')
+cell_color = vf.hex2color('#32CD32')
 
 loc_mat = loc_mat_list[0][0]
 mlab.figure(  bgcolor=(1,1,1) )
@@ -277,49 +298,11 @@ plt.legend(loc='best', fontsize=10)
 # plot ellipsoid around the cells 
 #==============================================================================
 
-
-cell_color = md.hex2color('#32CD32')
-ellipse_color = md.hex2color('#87CEFA') 
-
 fig = mlab.figure( size=(1600 , 1600) , bgcolor=(1,1,1) )
 
 floc = loc_mat[:, 0:3]
     
-
-floc , radii , A = dfm.set_initial_pars(floc)
-
-[a,b, c] = radii
-
-
-mlab.points3d( floc[:, 0], floc[:, 1], floc[:, 2] , 
-               0.5*np.ones( len( floc ) ), scale_factor=2.0 , 
-               resolution=20, color = cell_color  )
-
-                        
-
-# draw an ellipsoid
-engine = fig.parent
-fig.scene.disable_render = True # for speed
-point = np.array([0, 0, 0])
-# tensor seems to require 20 along the diagonal for the glyph to be the expected size
-tensor = np.array([20, 0, 0,
-                   0, 20, 0,
-                   0, 0, 20])
-data = tvtk.PolyData(points=[point])
-data.point_data.tensors = [tensor]
-data.point_data.tensors.name = 'some_name'
-data.point_data.scalars = [12]
-glyph = mlab.pipeline.tensor_glyph(data)
-glyph.glyph.glyph_source.glyph_source.theta_resolution = 50
-glyph.glyph.glyph_source.glyph_source.phi_resolution = 50
-
-actor = glyph.actor # mayavi actor, actor.actor is tvtk actor
-actor.property.opacity = 0.5
-actor.property.color = ellipse_color
-actor.mapper.scalar_visibility = False
-actor.property.backface_culling = True # gets rid of weird rendering artifact when opacity is < 1
-actor.actor.scale = a, b, c
-fig.scene.disable_render = False
+vf.mayavi_ellipsoid(floc, fig)
 
 mlab.view( 120, 150, 100)     
 img_name = 'cluster_ellipsoid'+ext
