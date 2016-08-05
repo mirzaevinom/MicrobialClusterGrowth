@@ -8,8 +8,8 @@ Created on June 23 2016
 
 from __future__ import division
 
-from constants import import_constants
-from sklearn.cluster import DBSCAN
+from constants import lam, mu, gammadot, Gamma, sim_step, flow_type, tau_p
+
 from multiprocessing import Pool
 
 import numpy as np
@@ -20,14 +20,9 @@ import time, cPickle, os
 import dla_3d as dla
 
 
-# import the constants
-lam, mu, gammadot, Gamma= import_constants()
-
-
 
 L = np.zeros([3,3])
 
-flow_type = 0
 
 if flow_type == 0:
     # Simple shear in one direction
@@ -50,28 +45,20 @@ elif flow_type == 2:
 else:
     raise Exception("Please specify a valid flow type")
 
-#deformation of the floc is enquired every t1 times, in seconds
-sim_step = 1
-
 # time step used for deformation equations
 dt = 1e-1 / gammadot
 
 ########
 #Parameters for cell proliferation
 
-# cell cycle time in seconds
-tau_p = 30*60
-
 
 
 ###########
 #Number of generations for to be simulated
-num_gen = 10
+num_gen = 4
 
 #Loop adjustment due to number of generation and generation time of a single cell
 num_loop = int( tau_p * num_gen / sim_step )
-
-
 
 
 def deform_floc( num_particles ):
@@ -104,32 +91,13 @@ def deform_floc( num_particles ):
     just_move_list = []
     
     
-    dbs = DBSCAN(eps=2 , min_samples = 1 )
+    #dbs = DBSCAN(eps=2 , min_samples = 1 )
     
     frag_list = []
     move_frag_list = [] 
     
     for tt in range( num_loop ):
     
-        
-        dbs.fit( loc_mat[:, 0:3] )    
-        aa = dbs.labels_
-    
-        if np.max(aa)>0:
-            core_floc  = np.argmax( np.bincount( aa ) )
-            loc_mat = loc_mat[ np.nonzero( aa== core_floc ) ]
-            #Add the fragments to a list
-            frag_list.extend( np.bincount( aa )[1:] )
-    
-    
-        dbs.fit( just_move[:, 0:3] )    
-        bb = dbs.labels_
-        
-        if np.max(bb)>0:
-            core_floc  = np.argmax( np.bincount( bb ) )
-            just_move = just_move[ np.nonzero( bb== core_floc ) ]
-            #Add the fragments to a list
-            move_frag_list.extend( np.bincount( bb )[1:] )
             
         #Append loc_mat at each half generation
         
@@ -171,7 +139,7 @@ def deform_floc( num_particles ):
         #    move the cells    
         #==============================================================================
             
-        loc_mat = md.hertzian_move(  loc_mat )
+        loc_mat = md.hertzian_move(  loc_mat , delta_t = sim_step )
         
         #radius of gyration
         c_mass = np.mean( loc_mat[: , 0:3] , axis=0 )
@@ -223,14 +191,15 @@ if __name__=='__main__':
     
     start = time.time()
     print time.strftime( "%H_%M" , time.localtime() )
+    
     #Usually number of CPUs is good number for number of proccess
     pool = Pool( processes = 3 )
-    ey_nana = np.arange( 2000, 5000 , 500)
+    ey_nana = np.arange( 200, 1250 , 200)
 
     result = pool.map( deform_floc , ey_nana )
     #result = map( deform_floc , ey_nana )
     
-    fname = 'data_'+ time.strftime( "_%m_%d_%H_%M" , time.localtime() ) +  str( flow_type ) +'_no_growth.pkl'  
+    fname = 'data_'+ time.strftime( "_%m_%d_%H_%M" , time.localtime() ) +  str( flow_type ) +'_deform.pkl'  
     output_file = open( os.path.join( 'data_files' , fname ) , 'wb')
       
     cPickle.dump(result, output_file)

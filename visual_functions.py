@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import mayavi.mlab as mlab
 import move_divide as md
 from tvtk.api import tvtk
+from tvtk.tools import visual
 
 
 
@@ -88,7 +89,7 @@ def plotEllipsoid( radii , center=np.array( [0,0,0] ) ,  rotation = np.identity(
         
         
 def mayavi_ellipsoid(floc, fig , 
-                     ellipse_color = hex2color('#87CEFA') , 
+                     ellipse_color = hex2color('#F5DEB3') , 
                      cell_color = hex2color('#32CD32') ):
          
     """Takes a centers of a floc and mayavi figure as an input. 
@@ -100,7 +101,16 @@ def mayavi_ellipsoid(floc, fig ,
                0.5*np.ones( len( floc ) ), scale_factor=2.0 , 
                resolution=20, color = cell_color  )
 
+    ax_len = np.max( [a, b, c] ) + 5
+    
+    xx = yy = zz = np.linspace(-ax_len , ax_len )
 
+    
+    xy = xz = yx = yz = zx = zy = np.zeros_like(xx)    
+    mlab.plot3d(yx,yy,yz,line_width=0.01,tube_radius=0.1, color=(0,0,0) )
+    mlab.plot3d(zx,zy,zz,line_width=0.01,tube_radius=0.1 , color=(0,0,0) )
+    mlab.plot3d(xx,xy,xz,line_width=0.01,tube_radius=0.1 , color=(0,0,0) )
+    
     fig.scene.disable_render = True # for speed
     point = np.array([0, 0, 0])
     # tensor seems to require 20 along the diagonal for the glyph to be the expected size
@@ -123,11 +133,34 @@ def mayavi_ellipsoid(floc, fig ,
     actor.actor.scale = a, b, c
     fig.scene.disable_render = False
 
+def floc_axes( floc , cell_color = hex2color('#32CD32') ):
+         
+    """Takes a centers of a floc and mayavi figure as an input. 
+    Plots the cells and a 3d axis
+    """
+    floc , [a,b,c] , A = dfm.set_initial_pars(floc)
+    
+    mlab.points3d( floc[:, 0], floc[:, 1], floc[:, 2] , 
+               0.5*np.ones( len( floc ) ), scale_factor=2.0 , 
+               resolution=20, color = cell_color  )
 
-if __name__=='__main__':
+    ax_len = np.max( [a, b, c] ) + 5
+    
+    xx = yy = zz = np.linspace(-ax_len , ax_len )
+
+    
+    xy = xz = yx = yz = zx = zy = np.zeros_like(xx)    
+    mlab.plot3d(yx,yy,yz,line_width=0.01,tube_radius=0.1, color=(0,0,0) )
+    mlab.plot3d(zx,zy,zz,line_width=0.01,tube_radius=0.1 , color=(0,0,0) )
+    mlab.plot3d(xx,xy,xz,line_width=0.01,tube_radius=0.1 , color=(0,0,0) )
+    
+
+if __name__=='__main__':    
     
     floc = np.load( 'dla_floc.npy')
     mlab.close(all=True)
     fig = mlab.figure( size=(800 , 800) , bgcolor=(1,1,1) )
     mayavi_ellipsoid(floc, fig)
-
+    mlab.view( distance = 60 )
+    mlab.savefig('images/cluster_ellipsoid.png', figure=fig )
+    

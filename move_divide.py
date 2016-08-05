@@ -9,81 +9,14 @@ Created on May 27 2016
 from __future__ import division
 from scipy.spatial.distance import cdist
 from scipy.spatial import ConvexHull
-
+from constants import ksi, pull_const, sim_step , rep_const, cell_rad, r_cut
 
 import numpy as np
-import dla_3d as dla
 
-########
-#Parameters for cell movement and proliferation
-
-r_cut = 1.50
-
-delta_t = 0.01
-
-r_overlap = 0.75
-
-#Friction rate induced by viscousity of the ECM
-ksi = 1
-
-#Strength of the Lennard-Jones potential for cell-cell adhesion and repulsion
-
-f_strength = 1e-1
-
-#Hetzian repulsion model, see p.419 of Liedekerke
-
-young_mod = 400
-
-pois_num = 0.4
-
-E_hat = 0.5 * young_mod / (1 - pois_num**2) 
-
-cell_rad = 0.5
-
-R_hat = cell_rad / 2
-    
-rep_const = 4/3*E_hat * np.sqrt( R_hat )
-
-pull_const = 0.5
-
-###########
-
-
-
-def lennard_jones_move( loc_mat ,  ksi = ksi , r_overlap = r_overlap , 
-               delta_t = delta_t , f_strenth=f_strength, r_cut = r_cut ):
-                   
-    N = len(loc_mat)               
-    indices = np.arange(N)
-               
-    for cnum in xrange( N ):
-
-        vec         = loc_mat[ cnum , 0:3] - loc_mat[ indices != cnum , 0:3]
-        
-        mag_vec     = np.linalg.norm( vec, axis=1)
-        
-        neig1        =  np.nonzero( mag_vec <= r_cut )[0]
-        neig2        =  np.nonzero( mag_vec > r_overlap )[0]
-        
-        neig         = np.intersect1d( neig1, neig2 )
-        mag_vec     = mag_vec[ neig ]
-        vec         = vec[ neig ]
-            
-        #==============================================================================
-        #            magnitude of modified Lennard-Jones force. Equilibrium between 
-        #           repulsion and adhesion is set to r_e = 1    
-        #==============================================================================
-        force       = 24 * f_strength * ( 1 * ( 1/mag_vec )**12- ( 1/mag_vec )**6  )  /  ( mag_vec**2 ) 
-        
-        #Lennard-Jones force vector 
-        lj_force    = np.sum ( ( vec.T * force ).T , axis=0 )   
-        loc_mat[ cnum , 0:3]    += delta_t * lj_force / ksi  
-        
-    return loc_mat
 
 
 def hertzian_move( loc_mat ,  ksi = ksi ,  pull_const = pull_const,
-                  delta_t = delta_t , rep_const = rep_const , 
+                  delta_t = sim_step , rep_const = rep_const , 
                   cell_rad = cell_rad , r_cut = r_cut ):
                    
     N = len(loc_mat)               
@@ -97,7 +30,7 @@ def hertzian_move( loc_mat ,  ksi = ksi ,  pull_const = pull_const,
         
         
         # Repulsive forces
-        neig1        =  np.nonzero( mag_vec <= 1 )[0]
+        neig1        =  np.nonzero( mag_vec <= 2*cell_rad )[0]
         mag_vec1     = mag_vec[ neig1 ]
         vec1         = vec[ neig1 ]
             
@@ -113,20 +46,20 @@ def hertzian_move( loc_mat ,  ksi = ksi ,  pull_const = pull_const,
         
         #cell-cell pulling force
         neig2        =  np.nonzero( mag_vec <= r_cut )[0]        
-        neig3        =  np.nonzero( mag_vec > 1 )[0]
+        neig3        =  np.nonzero( mag_vec > 2*cell_rad )[0]
         
         neig         = np.intersect1d( neig2, neig3 )
    
-        mag_vec2     = mag_vec[ neig ] - 1
+        mag_vec2     = mag_vec[ neig ] - 2*cell_rad
         vec2         = vec[ neig ]
             
-        force2    = -0.5 * pull_const * np.pi / ( r_cut - 1 ) * np.cos( 0.5*np.pi * mag_vec2 / ( r_cut - 1 ) )     
+        #force2    = -0.5 * pull_const * np.pi / ( r_cut - 1 ) * np.cos( 0.5*np.pi * mag_vec2 / ( r_cut - 1 ) )     
         
-        #force2 = - 0.5 * np.pi * pull_const * np.exp( - (mag_vec2 - 1)**2 / ( 2 * (r_cut -1)**2 )  )
+        force2 = - 0.5 * np.pi * pull_const * np.exp( - (mag_vec2 - 2*cell_rad)**2 / ( 2 * (r_cut - 2*cell_rad)**2 )  )
         
         attr_force    = np.sum ( ( vec2.T * force2 ).T , axis=0 )
         
-        loc_mat[ cnum , 0:3]    += delta_t * ( repul_force + attr_force) / ksi  
+        loc_mat[ cnum , 0:3]    += delta_t / ksi * ( repul_force + attr_force)   
         
     return loc_mat
 
@@ -155,7 +88,7 @@ sphr_shift = np.delete(sphr_shift , tbd , axis=0)
 
 
 
-def cell_divide( loc_mat , mitotic_cells , tt ,  sphr_shift = sphr_shift):
+def cell_divide( loc_mat , mitotic_cells , tt ,  cell_rad = cell_rad , sphr_shift = sphr_shift ):
     
     N = len(loc_mat)               
     indices = np.arange(N) 
@@ -169,9 +102,10 @@ def cell_divide( loc_mat , mitotic_cells , tt ,  sphr_shift = sphr_shift):
         
         loc = 0
     
-        espots = loc_mat[ cnum , 0:3 ] + sphr_shift
+        espots = loc_mat[ cnum , 0:3 ] + 2*cell_rad*sphr_shift
     
-        radius = np.ones( len( neighbors ) )                
+        radius = 2*cell_rad*np.ones( len( neighbors ) )  
+              
         dist_mat = cdist( espots , neighbors )
            
         d_list = np.prod( dist_mat >= radius , axis=1 )
@@ -217,7 +151,7 @@ def fractal_dimension(loc_mat):
     c_mass = np.mean( loc_mat[: , 0:3] , axis=0 )
     
     loc_mat[ : , 0:3]  = loc_mat[ : , 0:3] - c_mass
-    dists = np.sum( (loc_mat[: , 0:3] )**2 , axis=1 )      
+    dists = np.sum( ( loc_mat[: , 0:3] )**2 , axis=1 )      
   
     lastN = int( N*0.95  )
    
@@ -252,6 +186,7 @@ if __name__ == "__main__":
     import cPickle, os, time
     import scipy.io as sio
     import matplotlib.pyplot as plt
+    import dla_3d as dla
     
     start = time.time()
     
@@ -261,13 +196,13 @@ if __name__ == "__main__":
     pkl_file.close()
     
     
-    tau_p = 1
+    tau_p = 100
     
     #Number of generations for to be simulated
-    num_gen = 15
+    num_gen = 4
     
     #Loop adjustment due to number of generation and generation time of a single cell
-    num_loop = int( tau_p * num_gen / delta_t )
+    num_loop = int( tau_p * num_gen )
 
     #floc = loc_mat_list[5]
     #floc = dla.dla_generator()
@@ -299,7 +234,7 @@ if __name__ == "__main__":
     
     for tt in range( num_loop ):
         
-        if np.mod(tt, int(num_loop / 50 ) - 1 )==0:
+        if np.mod(tt, int(num_loop / 20 ) - 1 )==0:
             
             f_dims.append( fractal_dimension( loc_mat ) )        
     
@@ -327,12 +262,12 @@ if __name__ == "__main__":
 
     plt.close('all')
     plt.figure(0)
-    mtime = np.linspace(0, num_loop*delta_t, len(f_dims) )
+    mtime = np.linspace(0, num_loop*sim_step, len(f_dims) )
     plt.plot( mtime,  f_dims , linewidth=2)
     img_name = 'restructuring_effect.png'
     plt.savefig( os.path.join( 'images' , img_name ) , dpi=400, bbox_inches='tight')
 
-    data_dict = {
+    """data_dict = {
     
                'floc' : floc , 
                'loc_mat' : loc_mat,
@@ -348,12 +283,12 @@ if __name__ == "__main__":
     
     
     fname = 'restructuring_'+ time.strftime( "_%m_%d_%H_%M" , time.localtime() ) +str(r_cut)+'.pkl'
-    
+
     output_file = open( os.path.join( 'data_files' , fname ) , 'wb')
       
     cPickle.dump(data_dict, output_file)
     
-    output_file.close()
+    output_file.close()"""
     
 
     end = time.time()

@@ -4,10 +4,6 @@ import numpy.linalg as la
 import scipy.special as sp
 from scipy.integrate import odeint
 
-from mpl_toolkits.mplot3d import Axes3D
-
-import matplotlib.pyplot as plt
-
 
  
 """
@@ -395,6 +391,7 @@ def deform(t0, t1 , dt, G0v , lam , mu , L , Gamma ):
   
           fin_yout = opt[0][-1]
     else:
+        
         fin_yout = G0v
         print 'Integration did not converge!'
 
@@ -419,10 +416,11 @@ def evolve(t0, t1 , dt, G0v , lam , mu , L , Gamma ):
 
     N = len( yout )
     axes = np.zeros( (N, 3) )
+    rotations = np.zeros( (N , 3, 3 ) )
     for mm in range(N):
-        axes[mm] = dropAxes( yout[mm] )[0]
+        axes[mm] , rotations[mm] = dropAxes( yout[mm] )
 
-    return axes
+    return axes , rotations
   
   
 def getMinVolEllipse(P, tolerance=0.01):
@@ -527,7 +525,7 @@ def set_initial_pars(data_raw):
     data_rc = np.inner( data_c , evecs.T )
                                              
     # compute the axes lenghts                                                  
-    axes = np.max( np.abs( data_rc ) , axis=0 )    
+    axes = 2*np.std(  data_rc , axis=0 )    
 
     # sort the axes lengths                                                     
     indices=np.argsort(axes)[::-1]                                              

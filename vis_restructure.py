@@ -16,6 +16,7 @@ import mayavi.mlab as mlab
 import cPickle, os, time
 import scipy.io as sio
 import move_divide as md
+import visual_functions as vf
 
 import numpy as np
 
@@ -46,33 +47,27 @@ locals().update( results )
 
 
 
-cell_color = md.hex2color('#32CD32')
+cell_color = vf.hex2color('#32CD32')
 
 mlab.close(all=True)
 
-mlab.figure( size=(1600 , 1600) , bgcolor=(1,1,1) )
-
-
-mlab.points3d( floc[:, 0], floc[:, 1], floc[:, 2] , 0.5*np.ones( len(floc) ) ,
-               scale_factor=2.0, resolution=20 , color = cell_color)
-mlab.view(-176, 120, 72)
-mlab.title( 'Number of cells ' + str(len(floc ) ) , color = (0, 0, 0) , height=1.01, size=0.2)
-
+mlab.figure( size=(800, 800), bgcolor=(1,1,1))
+vf.floc_axes( floc )
+               
+mlab.view(distance = 70 )
                
 img_name = 'restructuring_initial.png'
 mlab.savefig( os.path.join( 'images' , img_name ) )
             
 
 
-mlab.figure( size=(1600 , 1600) , bgcolor=(1,1,1) )
 
 
-mlab.points3d( loc_mat[:, 0], loc_mat[:, 1], loc_mat[:, 2] , 0.5*np.ones( len(loc_mat) ) ,
-               scale_factor=2.0, resolution=20 , color = cell_color)
-
-mlab.view(-176, 120, 72)
-mlab.title( 'Number of cells ' + str(len(loc_mat ) ) , color = (0, 0, 0) , height=1.01 , size=0.2 )
-
+mlab.figure( size=(800, 800), bgcolor=(1,1,1))
+vf.floc_axes( loc_mat )
+               
+mlab.view(distance = 70 )
+               
 
 img_name = 'restructuring_final.png'
 mlab.savefig( os.path.join( 'images' , img_name ) )

@@ -8,7 +8,8 @@ Created on June 23 2016
 
 from __future__ import division
 
-from constants import import_constants
+from constants import lam, mu, gammadot, Gamma
+
 from sklearn.cluster import DBSCAN
 from multiprocessing import Pool
 
@@ -20,14 +21,10 @@ import time, cPickle, os
 import dla_3d as dla
 
 
-# import the constants
-lam, mu, gammadot, Gamma= import_constants()
-
-
 
 L = np.zeros([3,3])
 
-flow_type = 0
+flow_type = 1
 
 if flow_type == 0:
     # Simple shear in one direction
@@ -35,10 +32,10 @@ if flow_type == 0:
     
 elif flow_type ==1:
     
-    # flow in multiple directions
+    # Shear plus elongation flow
     L[0,1] = gammadot
-    L[1, 2] = gammadot
-    #L[0, 2] = gammadot/3
+    L[0,0] = gammadot
+    L[1, 1] = -gammadot
 
 elif flow_type == 2:
     
@@ -121,6 +118,7 @@ def grow_floc( num_particles ):
         deform_cells[tt]    = len(loc_mat)
         move_cells[tt]      = len(just_move)
         
+        """
         #==============================================================================
         #   Check if the floc is in one piece      
         #==============================================================================
@@ -142,7 +140,7 @@ def grow_floc( num_particles ):
             core_floc  = np.argmax( np.bincount( bb ) )
             just_move = just_move[ np.nonzero( bb== core_floc ) ]
             #Add the fragments to a list
-            move_frag_list.extend( np.bincount( bb )[1:] )
+            move_frag_list.extend( np.bincount( bb )[1:] )"""
             
         #Append loc_mat at each half generation
         
@@ -196,7 +194,7 @@ def grow_floc( num_particles ):
         #   Measure the volume of just_move at that time
         #==============================================================================
         
-        just_move = md.hertzian_move(  just_move )
+        just_move = md.hertzian_move(  just_move , delta_t = sim_step )
     
     
         #radius of gyration
@@ -280,7 +278,8 @@ if __name__=='__main__':
     #Usually number of CPUs is good number for number of proccess
     pool = Pool( processes = 3 )
     
-    ey_nana = np.arange(1000, 1150, 50)
+    ey_nana = np.arange(20, 50, 5)
+    
     result = pool.map( grow_floc , ey_nana )
     #result = map( deform_floc , ey_nana )
     

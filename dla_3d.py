@@ -9,18 +9,15 @@ Created on May 27 2016
 from __future__ import division
 from scipy.spatial.distance import cdist
 from numpy.random import randint
-
+from constants import cell_rad
 import numpy as np
+
 
 
 def dla_generator( rad_max = 10 , #maximum radius of the fractal
         
-                    num_particles = 5000 #Number of particles
+                    num_particles = 500 #Number of particles in the generated floc
                     ):
-    #==============================================================================
-    # Random empty spot search for cell division
-    #==============================================================================
-    
     
     xx = np.random.normal( 0 , 1 , size=2000)
     yy = np.random.normal( 0 , 1 , size=2000)
@@ -55,7 +52,7 @@ def dla_generator( rad_max = 10 , #maximum radius of the fractal
     
     
     
-    for pp in range(num_particles):
+    while len(pts)<num_particles:
     
         walker = rad_create * sphr_shift[ randint(num_direc) ]
         
@@ -79,7 +76,7 @@ def dla_generator( rad_max = 10 , #maximum radius of the fractal
                 
                 
             #walk the particle in the random direction
-            walker += sphr_shift[ randint(num_direc) ]
+            walker += 2*cell_rad*sphr_shift[ randint(num_direc) ]
             
             min_dist = np.min( np.linalg.norm( pts - walker , axis=1) )
             
@@ -89,7 +86,7 @@ def dla_generator( rad_max = 10 , #maximum radius of the fractal
             if max_dist > rad_kill**2:
                 die = 1
             #Stick the particle if it is close enough    
-            elif min_dist<1.1 and min_dist > 1.0:
+            elif ( min_dist< ( 2*cell_rad + 0.1) ) and min_dist > 2*cell_rad:
                 pts = np.append( pts , [walker] , axis=0 )
                 stuck=1
     return pts
@@ -99,31 +96,23 @@ if __name__=='__main__':
 
     import mayavi.mlab as mlab
     import move_divide as md
+    import visual_functions as vf
     
-    pts = dla_generator( num_particles = 4000)
+    pts = dla_generator( num_particles = 1200)
     print md.fractal_dimension( pts )
     
-    np.save('dla_floc' , pts)
+    #np.save('dla_floc' , pts)
     mlab.close(all=True)
     
-    cell_color = md.hex2color('#32CD32')
+    cell_color = vf.hex2color('#32CD32')
     
     mlab.figure( size=(1600 , 1600) , bgcolor=(1,1,1) )
     
     mlab.points3d( pts[:, 0], pts[:, 1], pts[:, 2] , scale_factor=1.0, resolution=20, color=cell_color )
     
-    
-    X = np.random.rand( 4 , 3 )
-    X[-1] = [0, 0, 3]
-   
-    from sklearn.cluster import DBSCAN
-    
-    dbs = DBSCAN(eps=2.0, min_samples = 1)
-    dbs.fit( pts )    
+    mlab.view(-176, 120, 50)
+    mlab.title( 'Fractal dimension ' + str( round( md.fractal_dimension( pts ) ,  2) ) , color = (0, 0, 0) , height=0.9, size=0.2)
 
-    print len( pts )
-    print len( dbs.core_sample_indices_ )
-    
     
 
 

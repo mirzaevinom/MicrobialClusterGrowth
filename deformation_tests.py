@@ -2,30 +2,27 @@ from __future__ import division
 from mayavi import mlab
 
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-
-import  moviepy.editor as mpy
 
 import deformation as dfm
 
-from constants import import_constants
+from constants import lam, mu, gammadot, Gamma
 
+import dla_3d
 import numpy as np
-
+import visual_functions as vf
 import time, cPickle, os
 
 """ Test the core functions of deformation.py
 """
 
-# import the constants
-lam, mu, gammadot, Gamma= import_constants()
+
 
 # set the initial axes
-a0 = np.array( [ 5.0, 5.0 , 5.0 ] )
+a0 = np.array( [ 10.0, 9.0 , 8.0 ] )
 #a0 = np.sort( 1 + 10*np.random.rand(3) )[::-1]
 
 t0 = 0
-sim_step = 2
+sim_step = 0.25
 
 dt = 1e-1 / gammadot
 
@@ -35,7 +32,7 @@ start = time.time()
 
 L = np.zeros([3,3])
 
-flow_type = 0
+flow_type = 2
 
 if flow_type == 0:
     # Simple shear in one direction
@@ -43,18 +40,17 @@ if flow_type == 0:
     
 elif flow_type ==1:
     
-    # flow in multiple directions
+    # Shear plus elongation flow
     L[0,1] = gammadot
-    L[1, 2] = gammadot
-    #L[0, 2] = gammadot/3
+    L[0,0] = gammadot
+    L[1, 1] = -gammadot
 
 elif flow_type == 2:
-    
+
     #Elongational flow
     L[0,0] = gammadot
     L[1, 1] = -gammadot
-    #L[2, 2] = -gammadot
-    #L *= 0.1
+
 else:
     raise Exception("Please specify a valid flow type")
     
@@ -76,7 +72,7 @@ end = time.time()
 print 'Time elapsed' , round( end - start, 2), 'seconds'
 
 
-axes = dfm.evolve(t0, sim_step , dt , G0v , lam , mu , L , Gamma )
+axes = dfm.evolve(t0, sim_step , dt , G0v , lam , mu , L , Gamma )[0]
 
 taylor_deform  = np.max( ( axes[:, 0] - axes[:, 2] ) / ( axes[:, 0] + axes[:, 2]) )
 
@@ -95,88 +91,18 @@ plt.figure(0)
 
 plt.plot(axes)
 
-
-"""
-points = 10*np.random.rand(10**4, 3)
-points  = points - np.mean(points , axis=0)
-dists = np.sum( points**2 , axis=1)
-points = points[dists<25]
-points = points * np.array([ 10 , 10 , 1 ]) 
-
-#import scipy.io as sio
-#
-#dla_mat = sio.loadmat( 'test.mat' )[ 'map' ]
-#
-#cells = np.nonzero( dla_mat )
-#
-#points = np.array(cells).T
-
-
-fig = plt.figure(1)
-
-pts , radii , A = dfm.set_initial_pars(points)
-print radii
-
-
-ax = fig.add_subplot(111, projection='3d')
-
-# plot points
-ax.scatter( pts[:, 0] , pts[:, 1] , pts[:, 2] , color='g' )
-
-# plot ellipsoid
-dfm.plotEllipsoid( radii ,  ax=ax, plotAxes=True )
-
-#Change the view angle and elevation
-ax.view_init( azim=-10, elev=30 )
-
-
-fig = plt.figure(1)
-
-(pts, radii , shape_tens) = dfm.get_body_ellipse(points)
-
-print radii
-
-ax = fig.add_subplot(111, projection='3d')
-
-# plot points
-ax.scatter( pts[:, 0] , pts[:, 1] , pts[:, 2] , color='g' )
-
-# plot ellipsoid
-dfm.plotEllipsoid( radii ,  ax=ax, plotAxes=True )
-
-#Change the view angle and elevation
-ax.view_init( azim=-10, elev=30 )
-
-
-
 mlab.close(all=True)
-mlab.figure( size=(600, 600) )
-
-myaxes = axes2[::int( len(axes2) / 100) ]
-num_fps = 24
-
-N = len(myaxes) - 1
-
-duration = N / num_fps 
-
-def make_frame(t):
-    
-    [a, b, c] = myaxes[ int(t*num_fps) ]
-    
-    mlab.clf()
-    p_axis = np.max( [a, b, c] )
-    x, y, z = np.ogrid[-p_axis:p_axis:100j, -p_axis:p_axis:100j, -p_axis:p_axis:100j]
-    F = x**2/a**2 + y**2/b**2 + z**2/c**2 - 1
-    mlab.contour3d(F, contours = [0] , transparent=True, opacity=0.5)
-    mlab.points3d( 0, 0, 0,  1 , scale_factor=2)
-
-    return mlab.screenshot( antialiased=True )
 
 
-animation = mpy.VideoClip(make_frame, duration=duration)
+#points = 10*np.random.rand(10**3, 3)
+#points  = points - np.mean(points , axis=0)
+#dists = np.sum( points**2 , axis=1)
+#points = points[dists<25]
+#floc = points * np.array([ 10 , 8 , 5 ]) 
+floc = np.load( 'dla_floc.npy')
 
-#vf_name = 'mlab_animation_' + time.strftime("%Y_%m_%d_%H_%M", time.gmtime()) + '.mp4'
-vf_name = 'deformation.mp4'
+#floc = dla_3d.dla_generator( num_particles = 1000)    
 
-animation.write_videofile( vf_name , fps = num_fps)
-"""
+fig = mlab.figure( size=( 800 , 800 ) ,  bgcolor=(1,1,1) )
+
+vf.mayavi_ellipsoid( floc , fig )

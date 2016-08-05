@@ -18,6 +18,7 @@ import mayavi.mlab as mlab
 import move_divide as md
 
 import visual_functions as vf
+import pandas as pd
 
 
 
@@ -26,7 +27,7 @@ start = time.time()
 
 fnames = []
 
-flow_type = '0'
+flow_type = '2'
 
 for file in os.listdir("data_files"):
     if file.endswith("growth.pkl") and file[-15]==flow_type:
@@ -48,21 +49,21 @@ for mm in range(len(fnames)):
         
         data_dict = data_dict_list[nn]
         
-        if len( data_dict['frag_list'] )>0:
-            if np.max( data_dict['frag_list']) > len(data_dict['loc_mat_list'][-1][0] ):
-                print myfile
-
-        if len(data_dict['move_frag_list'])>0:            
-            if np.max( data_dict['move_frag_list']) > len(data_dict['just_move_list'][-1][0] ):
-                print myfile
-            
+        if len( data_dict['frag_list'] )>0 or len(data_dict['move_frag_list'])>0:
+           print myfile
+        """else:
+            loc_mat = data_dict['loc_mat_list'][-1][0]
+            deform_fdims.append( [ len(data_dict['loc_mat_list'][0][0]) , md.fractal_dimension( loc_mat ) ] )
+            just_move = data_dict['just_move_list'][-1][0]
+            move_fdims.append( [ len(data_dict['just_move_list'][0][0]), md.fractal_dimension( just_move ) ] )"""        
+                   
         loc_mat = data_dict['loc_mat_list'][-1][0]
         deform_fdims.append( [ len(data_dict['loc_mat_list'][0][0]) , md.fractal_dimension( loc_mat ) ] )
-
         just_move = data_dict['just_move_list'][-1][0]
-        move_fdims.append( [ len(data_dict['just_move_list'][0][0]), md.fractal_dimension( just_move ) ] )        
+        move_fdims.append( [ len(data_dict['just_move_list'][0][0]), md.fractal_dimension( just_move ) ] )
         
 
+"""        
 deform_fdims = np.asarray( deform_fdims)
 deform_fdims = np.sort( deform_fdims , axis=0 )
 
@@ -73,7 +74,7 @@ bb[:,1] = 0
 
 mydist = cdist( bb , bb , p=1 )
 mydist +=30*np.triu( np.ones_like( mydist ) )    
-indice = np.nonzero( np.min(mydist, axis=1)>20 )[0]
+indice = np.nonzero( np.min(mydist, axis=1)>0 )[0]
 
 deform_fdims = deform_fdims[ indice ]
 
@@ -85,12 +86,16 @@ move_fdims = np.sort( move_fdims , axis=0 )
 move_fdims = move_fdims[ indice ]
 
 deform_fdims[ deform_fdims[:,1]>3, 1] = 3
-move_fdims[move_fdims[:,1]>3 , 1] = 3
+move_fdims[move_fdims[:,1]>3 , 1] = 3"""
 #Load all the parameters and simulation results from the pkl file
 
 
+deform_fdims = pd.DataFrame( deform_fdims , columns=['a', 'b'] )
+move_fdims = pd.DataFrame( move_fdims , columns=['a', 'b'] )
 
-myfile = fnames[1]
+
+
+myfile = fnames[-1]
 
 pkl_file = open(os.path.join( 'data_files' , myfile ) , 'rb')
 
@@ -102,7 +107,7 @@ pkl_file.close()
 
 
 
-data_dict = data_dict_list[4]
+data_dict = data_dict_list[-1]
 locals().update( data_dict )
 
 
@@ -132,11 +137,14 @@ ax = fig.add_subplot(111)
 
 
 mtime = np.linspace( 0 , num_loop*sim_step, len(loc_mat_list) ) / 60 / 60
-ax.plot( mtime , fdim_list , linewidth=2 , color='blue', label ='with deformation')
-ax.plot( mtime , just_fdim_list , linewidth=2 , color='red', label = 'without deformation')
+ax.plot( mtime , fdim_list , linewidth=2 , color='blue', label ='restructuring + deformation')
+ax.plot( mtime , just_fdim_list , linewidth=2 , color='red', label = 'restructuring')
 
-ax.set_xlabel('Time (h)', fontsize=15)
-ax.set_ylabel( 'Fractal dimension' , fontsize = 15 )
+ax.set_xlabel('Time (h)', fontsize=20)
+ax.set_ylabel( 'Fractal dimension' , fontsize = 20 )
+ax.tick_params( axis='x' , labelsize=15)
+ax.tick_params( axis='y' , labelsize=15)
+
 plt.legend(loc='best', fontsize=20)
 
 img_name = 'fractal dimension'+ext
@@ -145,17 +153,12 @@ plt.savefig( os.path.join( 'images' , img_name ) , dpi=400, bbox_inches='tight')
  
 mlab.close(all=True)
 
-cell_color = vf.hex2color('#32CD32')
-
 loc_mat = loc_mat_list[0][0]
-mlab.figure(  bgcolor=(1,1,1) )
 
-mlab.points3d( loc_mat[:, 0], loc_mat[:, 1], loc_mat[:, 2] , 
-               0.5*np.ones( len( loc_mat ) ), scale_factor=2.0 , 
-               resolution=20, color = cell_color  )
+mlab.figure( size=(800, 800), bgcolor=(1,1,1))
+vf.floc_axes( loc_mat[ : , 0:3 ] )
                
-mlab.view(distance = 75 )
-
+mlab.view(distance = 70 )
 
 img_name = 'initial_floc'+ext
 mlab.savefig( os.path.join( 'images' , img_name ) )
@@ -163,29 +166,25 @@ mlab.savefig( os.path.join( 'images' , img_name ) )
 
 
 floc = just_move_list[-1][0]
-mlab.figure(  bgcolor=(1,1,1) )
 
-
-
-mlab.points3d( floc[:, 0], floc[:, 1], floc[:, 2] , 
-               0.5*np.ones( len( floc ) ), scale_factor=2.0 , 
-               resolution=20, color = cell_color  )
+mlab.figure( size=(800, 800), bgcolor=(1,1,1))
+vf.floc_axes( floc )
                
-mlab.view(distance = 75 )
+mlab.view(distance = 70 )
 
 
 img_name = 'final_floc_movement'+ext
 mlab.savefig( os.path.join( 'images' , img_name ) )
 
 
-loc_mat = loc_mat_list[-1][0]
-mlab.figure(  bgcolor=(1,1,1) )
 
-mlab.points3d( loc_mat[:, 0], loc_mat[:, 1], loc_mat[:, 2] , 
-               0.5*np.ones( len( loc_mat ) ), scale_factor=2.0 , 
-               resolution=20, color = cell_color  )
+
+loc_mat = loc_mat_list[-1][0]
+
+mlab.figure( size=(800, 800), bgcolor=(1,1,1))
+vf.floc_axes( loc_mat[ : , 0:3 ] )
                
-mlab.view(distance = 75 )
+mlab.view(distance = 70 )
 
 
 img_name = 'final_floc_deform'+ext
@@ -220,41 +219,23 @@ end = time.time()
 plt.figure(2)
 
 
-xdata = np.linspace( 0, sim_step*num_loop/60/60, len(deform_radg))
+xdata = np.linspace( 0, sim_step*num_loop/60/60, len(deform_radg[::100]))
 
-plt.plot( xdata , deform_radg , linewidth=1, color='blue')
-plt.plot( xdata , move_radg , linewidth=1, color='red')
+plt.plot( xdata , deform_radg[::100] , linewidth=2, color='blue',label ='restructuring + deformation' )
+plt.plot( xdata , move_radg[::100] , linewidth=2, color='red' , label ='restructuring')
 
-plt.xlabel( 'Dimensionless time' , fontsize = 15 )
-plt.ylabel( 'Radius of gyration' , fontsize = 15)
+plt.xlabel( 'Time (h)' , fontsize = 20 )
+plt.ylabel( 'Radius of gyration' , fontsize = 20)
+plt.tick_params( axis='x' , labelsize=15)
+plt.tick_params( axis='y' , labelsize=15)
 
-"""
-fig = plt.figure( 3 , figsize=(15, 15) , frameon=False)
-fig.patch.set_alpha( 0.0 )
-
-points = loc_mat[ : , 0:3 ]
-
-pts , radii , A = dfm.set_initial_pars( points )
-print radii
+plt.legend(loc='best', fontsize=20)
 
 
-ax = fig.add_subplot(111, projection='3d')
-
-# plot points
-ax.scatter( pts[:, 0] , pts[:, 1] , pts[:, 2] , color='g' )
-ax.set_xlabel('$a$' , fontsize = 20 )
-ax.set_ylabel('$b$' , fontsize = 20 )
-ax.set_zlabel('$c$' , fontsize = 20 )
-ax.set_aspect('equal')
-# plot ellipsoid
-dfm.plotEllipsoid( radii ,  ax=ax, plotAxes=True )
-
-#Change the view angle and elevation
-ax.view_init( azim=-60, elev=15 )
-
-img_name = 'cluster_ellipsoid'+ext
+img_name = 'radg_evolution_'+ext
 plt.savefig( os.path.join( 'images' , img_name ) , dpi=400, bbox_inches='tight')
-"""
+
+
 
 
 if len(frag_list)>1:
@@ -273,41 +254,70 @@ if len(move_frag_list)>1:
     plt.show()
 
 
-
-fig = plt.figure( 6 )
+"""
+fig = plt.figure( 6 , figsize=(20 , 12))
 
 ax = fig.add_subplot(111)
 
 #ax.scatter( deform_fdims[:, 0] , deform_fdims[:, 1]  , color='blue', label ='with deformation')
 #ax.scatter( move_fdims[:, 0] , move_fdims[:, 1] , color='red', label = 'without deformation')
 
-bar_width = 20
+bar_width = 5
 opacity = 0.8
 
 ax.bar( deform_fdims[:, 0] , deform_fdims[:, 1]  , width=bar_width , 
-       alpha=opacity , color='blue', label ='with deformation')
-ax.bar( move_fdims[:, 0] , move_fdims[:, 1] , width=bar_width , 
-       alpha=opacity , color='red', label = 'without deformation')
+       alpha=opacity , color='blue', label ='restructuring + deformation', align='center' )
 
-ax.set_xlabel('Number of cells of a floc', fontsize=15)
-ax.set_ylabel( 'Fractal dimension at the end of simulation' , fontsize = 15 )
-plt.legend(loc='best', fontsize=10)
+ax.bar( move_fdims[:, 0] + bar_width , move_fdims[:, 1] , width=bar_width , 
+       alpha=opacity , color='red', label ='restructuring' , align='center')
+
+ax.set_xlabel('Number of cells of a floc', fontsize=25)
+ax.set_ylabel( 'Fractal dimension at the end of simulation' , fontsize = 25 )
+ax.tick_params(axis='x', labelsize=20)
+ax.tick_params(axis='y', labelsize=20)
+
+plt.legend(loc='best', fontsize=20)
+
+img_name = 'fdim_histogram_'+ext
+#plt.savefig( os.path.join( 'images' , img_name ) , dpi = 400 , bbox_inches = 'tight' )
+
+"""
 
 
-#==============================================================================
-# plot ellipsoid around the cells 
-#==============================================================================
+fig = plt.figure( 3 , figsize=(20 , 12))
 
-fig = mlab.figure( size=(1600 , 1600) , bgcolor=(1,1,1) )
+ax = fig.add_subplot(111)
 
-floc = loc_mat[:, 0:3]
-    
-vf.mayavi_ellipsoid(floc, fig)
 
-mlab.view( 120, 150, 100)     
-img_name = 'cluster_ellipsoid'+ext
+bar_width = 5
+opacity = 0.8
 
-mlab.savefig( os.path.join( 'images' , img_name ) )
+
+ax.errorbar( deform_fdims.groupby('a')['a'].first() , deform_fdims.groupby('a')['b'].mean()  ,
+            yerr = deform_fdims.groupby('a')['b'].std(), fmt='-o', markersize=10,
+            linewidth=2, color='blue', label ='restructuring + deformation' )
+
+
+ax.errorbar( move_fdims.groupby('a')['a'].first() , move_fdims.groupby('a')['b'].mean()  ,
+            yerr = move_fdims.groupby('a')['b'].std(), fmt='-o', markersize=10,
+            linewidth=2, color='red', label ='restructuring' )
+
+
+
+ax.set_xlabel('Number of cells of a floc', fontsize=25)
+ax.set_ylabel( 'Fractal dimension at the end of simulation' , fontsize = 25 )
+ax.tick_params(axis='x', labelsize=20)
+ax.tick_params(axis='y', labelsize=20)
+aa = list( ax.axis() )
+aa[0] -= 10
+aa[1] +=10
+ax.axis(aa)
+ax.grid(True)
+plt.legend(loc='best', fontsize=20)
+
+img_name = 'fdim_plot_'+ext
+plt.savefig( os.path.join( 'images' , img_name ) , dpi = 400 , bbox_inches = 'tight' )
+
 
 end = time.time()
 
