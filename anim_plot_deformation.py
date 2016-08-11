@@ -8,7 +8,7 @@ Created on June 23 2016
 
 from __future__ import division
 
-from constants import import_constants
+from constants import lam, mu, gammadot, Gamma 
 from moviepy.video.io.bindings import mplfig_to_npimage
 from tvtk.api import tvtk
 
@@ -22,10 +22,8 @@ import mayavi.mlab as mlab
 import os
 
 
-# import the constants
-lam, mu, gammadot, Gamma= import_constants()
 
-dt = 0.1
+dt = 0.1/gammadot
 
 L = np.zeros([3,3])
 
@@ -118,10 +116,9 @@ mlab.close(all=True)
 fig = mlab.figure( size=(800, 800) ,  bgcolor=(1,1,1) )
 
 vf.mayavi_ellipsoid( floc , fig )
-
 mlab.savefig('images/cluster_ellipsoid.png')
 
-
+"""
 num_fps = 2*int( len(axes) / sim_step )
 
 N = len(axes) - 1
@@ -230,3 +227,4 @@ animation = mpy.clips_array([[clip1, clip2]])
 
 animation.write_videofile( 'images/deformation.mp4' , fps = num_fps)
 
+"""

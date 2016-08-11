@@ -101,7 +101,7 @@ def mayavi_ellipsoid(floc, fig ,
                0.5*np.ones( len( floc ) ), scale_factor=2.0 , 
                resolution=20, color = cell_color  )
 
-    ax_len = np.max( [a, b, c] ) + 5
+    ax_len = np.max( [a, b, c] ) + 7
     
     xx = yy = zz = np.linspace(-ax_len , ax_len )
 

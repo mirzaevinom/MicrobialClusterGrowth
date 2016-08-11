@@ -8,7 +8,7 @@ Created on June 23 2016
 
 from __future__ import division
 
-from constants import lam, mu, gammadot, Gamma, sim_step, flow_type, tau_p
+from constants import lam, mu, gammadot, Gamma, sim_step, flow_type, tau_p , dt
 
 from multiprocessing import Pool
 
@@ -45,13 +45,10 @@ elif flow_type == 2:
 else:
     raise Exception("Please specify a valid flow type")
 
-# time step used for deformation equations
-dt = 1e-1 / gammadot
+
 
 ########
 #Parameters for cell proliferation
-
-
 
 ###########
 #Number of generations for to be simulated
@@ -170,10 +167,7 @@ def deform_floc( num_particles ):
                 'num_loop' : num_loop  ,
                 'axes' : axes,
                 'G_vector' : G_vector,
-                'delta_t' : md.delta_t  , 
                 'tau_p' : tau_p ,
-                'r_cut' : md.r_cut ,      
-                'r_overlap' : md.r_overlap ,
                 'sim_step' : sim_step ,
                 'lam' : lam ,
                 'mu' : mu ,
@@ -199,7 +193,7 @@ if __name__=='__main__':
     result = pool.map( deform_floc , ey_nana )
     #result = map( deform_floc , ey_nana )
     
-    fname = 'data_'+ time.strftime( "_%m_%d_%H_%M" , time.localtime() ) +  str( flow_type ) +'_deform.pkl'  
+    fname = 'data_'+ time.strftime( "_%m_%d_%H_%M" , time.localtime() ) + '_deform_'+str( flow_type ) +'.pkl'  
     output_file = open( os.path.join( 'data_files' , fname ) , 'wb')
       
     cPickle.dump(result, output_file)

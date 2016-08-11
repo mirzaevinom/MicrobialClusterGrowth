@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on June 23 2016
+Created on August 10 2016
 
 @author: Inom Mirzaev
 
@@ -9,7 +9,7 @@ Created on June 23 2016
 from __future__ import division
 
 
-from constants import lam, mu, gammadot, Gamma, sim_step, flow_type, tau_p , dt
+from constants import lam, mu , Gamma , flow_type, tau_p 
 
 from multiprocessing import Pool
 
@@ -17,47 +17,48 @@ import numpy as np
 import deformation as dfm
 import move_divide as md
 
-import time, cPickle, os
+import time , cPickle , os
 import dla_3d as dla
 
 
 
-L = np.zeros([3,3])
-
-if flow_type == 0:
-    # Simple shear in one direction
-    L[0,1] = gammadot
+def grow_floc( gammadot , flow_type = flow_type ):
     
-elif flow_type ==1:
+    sim_step = 1 / gammadot
     
-    # Shear plus elongation flow
-    L[0,1] = gammadot
-    L[0,0] = gammadot
-    L[1, 1] = -gammadot
+    dt = sim_step / 10
 
-elif flow_type == 2:
+    L = np.zeros([3,3])
     
-    #Elongational flow
-    L[0,0] = gammadot
-    L[1, 1] = -gammadot
-    #L[2, 2] = -gammadot
-    #L *= 0.1
-else:
-    raise Exception("Please specify a valid flow type")
-
-
-###########
-#Number of generations for to be simulated
-num_gen = 10
-
-#Loop adjustment due to number of generation and generation time of a single cell
-num_loop = int( tau_p * num_gen / sim_step )
-
-
-
-
-def grow_floc( num_particles ):
-
+    if flow_type == 0:
+        # Simple shear in one direction
+        L[0,1] = gammadot
+        
+    elif flow_type == 1:
+        
+        # Shear plus elongation flow
+        L[0,1] = gammadot
+        L[0,0] = gammadot
+        L[1, 1] = -gammadot
+    
+    elif flow_type == 2:
+        
+        #Elongational flow
+        L[0,0] = gammadot
+        L[1, 1] = -gammadot
+        #L[2, 2] = -gammadot
+        #L *= 0.1
+    else:
+        raise Exception("Please specify a valid flow type")
+    
+    
+    ###########
+    #Number of generations for to be simulated
+    num_gen = 10
+    
+    #Loop adjustment due to number of generation and generation time of a single cell
+    num_loop = int( tau_p * num_gen / sim_step )
+    
 
     #==============================================================================
     # location matrix loc_mat  -- coordinate1--coordinate2--coordinate3-- living or 
@@ -68,9 +69,8 @@ def grow_floc( num_particles ):
     scale = 1 / shape
     cycle_time = tau_p * np.random.gamma( shape , scale , 10**5 )
     
-
     
-    floc = dla.dla_generator( num_particles = num_particles )
+    floc = dla.dla_generator( num_particles = 20 )
       
     init_loc_mat = np.zeros( ( len(floc) , 7 ) )
     init_loc_mat[ : , 0:3 ] = floc
@@ -231,14 +231,15 @@ if __name__=='__main__':
     start = time.time()
     print time.strftime( "%H_%M" , time.localtime() )
     #Usually number of CPUs is good number for number of proccess
-    pool = Pool( processes = 3 )
+    pool = Pool( processes = 5 )
     
-    ey_nana = np.arange(20, 50, 5)
+    ey_nana = np.arange( 1 , 11 )
     
     result = pool.map( grow_floc , ey_nana )
+    
     #result = map( deform_floc , ey_nana )
     
-    fname = 'data_'+ time.strftime( "_%m_%d_%H_%M" , time.localtime() )  +'_division'+ str( flow_type )+'.pkl'  
+    fname = 'data_'+ time.strftime( "_%m_%d_%H_%M" , time.localtime() )  +'_shear_'+  str( flow_type )+'.pkl'  
     output_file = open( os.path.join( 'data_files' , fname ) , 'wb')
       
     cPickle.dump(result, output_file)

@@ -18,13 +18,18 @@ import time, cPickle, os
 
 
 # set the initial axes
-a0 = np.array( [ 10.0, 9.0 , 8.0 ] )
+a0 = np.array( [ 10.0, 9.0 , 9.0 ] )
 #a0 = np.sort( 1 + 10*np.random.rand(3) )[::-1]
 
 t0 = 0
-sim_step = 0.25
 
-dt = 1e-1 / gammadot
+gammadot = 10
+
+sim_step = 1 / gammadot
+
+#sim_step = 0.1 / gammadot
+
+dt = 0.01
 
 start = time.time()
 # set up the matrix velocity gradient L defined by du/dy=gammadot
@@ -32,7 +37,7 @@ start = time.time()
 
 L = np.zeros([3,3])
 
-flow_type = 2
+flow_type = 0
 
 if flow_type == 0:
     # Simple shear in one direction
@@ -41,8 +46,8 @@ if flow_type == 0:
 elif flow_type ==1:
     
     # Shear plus elongation flow
-    L[0,1] = gammadot
-    L[0,0] = gammadot
+    L[0,1] = 2*gammadot
+    L[0,0] = -gammadot
     L[1, 1] = -gammadot
 
 elif flow_type == 2:
@@ -59,7 +64,7 @@ else:
 G0 = np.diag( 1.0 / a0**2 )
 G0v = dfm.tens2vec( G0 )
 
-a1 = dfm.deform(t0, sim_step , dt , G0v , lam , mu , L , Gamma )[0]
+a1 = dfm.deform( t0 , sim_step , dt , G0v , lam , mu , L , Gamma )[0]
 
 print a1
 print a1/a0
@@ -70,6 +75,7 @@ print 'Error in volume', vol_err, 'percent'
 end = time.time()
 
 print 'Time elapsed' , round( end - start, 2), 'seconds'
+
 
 
 axes = dfm.evolve(t0, sim_step , dt , G0v , lam , mu , L , Gamma )[0]

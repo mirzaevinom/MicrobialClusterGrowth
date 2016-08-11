@@ -29,19 +29,21 @@ Gamma = 1e-8
 
 #Parameters for cell movement and proliferation
 
-sim_step = 0.25 # seconds
+sim_step = 1 / gammadot # seconds
+
+dt = sim_step / 10
 
 # Mean cell cycle time in seconds
 tau_p = 30*60
 
 #Flow type for simulations
-flow_type = 2
+flow_type = 0
 
 
 
 #Hetzian repulsion model, see p.419 of Liedekerke
 
-young_mod = 5e5
+young_mod = 5e6
 
 pois_num = 0.5
 

@@ -16,6 +16,8 @@ def ellip1(xt,yt,zt):
     transliterated from the function "RD" from Eric Wetzel's
     calcesh.f file.  I don't know where Eric got it from."""
 
+    ERRTOL = 0.0015
+    
     C1=3.0/14.0
     C2=1.0/6.0
     C3=9.0/22.0 
@@ -24,19 +26,25 @@ def ellip1(xt,yt,zt):
     C6=1.5*C4
     sigma=0.
     fac=1.
-    rtx=np.sqrt(xt)
-    rty=np.sqrt(yt)
-    rtz=np.sqrt(zt)
-    alamb=rtx*(rty+rtz)+rty*rtz
-    sigma=sigma+fac/(rtz*(zt+alamb))
-    fac=.25*fac
-    xt=.25*(xt+alamb)
-    yt=.25*(yt+alamb)
-    zt=.25*(zt+alamb)
-    ave=.2*(xt+yt+3.*zt)
-    delx=(ave-xt)/ave
-    dely=(ave-yt)/ave
-    delz=(ave-zt)/ave
+    
+    while True:
+        rtx=np.sqrt(xt)
+        rty=np.sqrt(yt)
+        rtz=np.sqrt(zt)
+        alamb=rtx*(rty+rtz)+rty*rtz
+        sigma=sigma+fac/(rtz*(zt+alamb))
+        fac=.25*fac
+        xt=.25*(xt+alamb)
+        yt=.25*(yt+alamb)
+        zt=.25*(zt+alamb)
+        ave=.2*(xt+yt+3.*zt)
+        delx=(ave-xt)/ave
+        dely=(ave-yt)/ave
+        delz=(ave-zt)/ave
+        
+        if np.max( np.abs( [ delx , dely , delz ] ) ) <= ERRTOL:
+            break
+
     ea=delx*dely
     eb=delz*delz
     ec=ea-eb
@@ -52,21 +60,29 @@ def ellip2(xt,yt,zt):
     transliterated from the function "RF" from Eric Wetzel's
     calcesh.f file.  I don't know where Eric got it from. """
 
+    ERRTOL = 0.0025
     C1=1.0/24.0
     C2=0.1
     C3=3.0/44.0
     C4=1.0/14.0
-    rtx=np.sqrt(xt)
-    rty=np.sqrt(yt)
-    rtz=np.sqrt(zt)
-    alamb=rtx*(rty+rtz)+rty*rtz
-    xt=.25*(xt+alamb)
-    yt=.25*(yt+alamb)
-    zt=.25*(zt+alamb)
-    ave=1.0/3.0*(xt+yt+zt)
-    delx=(ave-xt)/ave
-    dely=(ave-yt)/ave
-    delz=(ave-zt)/ave
+    
+    while True:
+        rtx=np.sqrt(xt)
+        rty=np.sqrt(yt)
+        rtz=np.sqrt(zt)
+        alamb=rtx*(rty+rtz)+rty*rtz
+        xt=.25*(xt+alamb)
+        yt=.25*(yt+alamb)
+        zt=.25*(zt+alamb)
+        ave=1.0/3.0*(xt+yt+zt)
+        delx=(ave-xt)/ave
+        dely=(ave-yt)/ave
+        delz=(ave-zt)/ave
+        
+        if np.max( np.abs( [ delx , dely , delz ] ) ) <= ERRTOL:
+            break
+
+
     e2=delx*dely-delz**2
     e3=delx*dely*delz
     rf=(1.+(C1*e2-C2-C3*e3)*e2+C4*e3)/np.sqrt(ave)
@@ -108,10 +124,10 @@ def eshtens(G, lam, dropaxes, R):
 
 
     #---- Axis ratios (B.85) ----
-    a1, a2, a3 = dropaxes
-    C = a3/a1             # C = c/a
-    D = a3/a2             # D = c/b
-    TINY = 10**(-14)      # tol for using C or D = 0 formulae
+    a3, a2, a1 = dropaxes
+    C = max( [ a3/a1, 0 ] )             # C = c/a
+    D = max( [ a3/a2 , 0] )             # D = c/b
+    TINY = 1e-14      # tol for using C or D = 0 formulae
 
     #---- Build Eshelby tensors Sm and Tm in the principal axis system ---
     Sm = np.zeros([6,6])
@@ -290,9 +306,9 @@ def ode_rhs( Gv , t ,  L, lam, mu, Gamma):
     a=1./np.sqrt(np.abs(evals))
 
     # Sort the radii in the body frame    
-    sorted_index                = np.argsort(a)[::-1]
+    sorted_index                = np.argsort(a)
   
-    a = a[sorted_index]
+    a = a[ sorted_index ]
 
     # Sort the rotation matrix accordingly
     V                           = V[: , sorted_index] 
@@ -360,6 +376,7 @@ def ode_rhs( Gv , t ,  L, lam, mu, Gamma):
     dgdt = tens2vec(dgdt_tens)
     
     return dgdt
+
 
 def dropAxes(Gv):
     """Find the droplet semi-axes, daxes = [a b c], for the droplet shape 

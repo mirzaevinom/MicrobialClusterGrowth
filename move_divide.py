@@ -70,9 +70,9 @@ def hertzian_move( loc_mat ,  ksi = ksi ,  pull_const = pull_const,
 #==============================================================================
 
 
-x = np.random.normal( 0 , 1 , size=2000)
-y = np.random.normal( 0 , 1 , size=2000)
-z = np.random.normal( 0 , 1 , size=2000)
+x = np.random.normal( 0 , 1 , size=2000 )
+y = np.random.normal( 0 , 1 , size=2000 )
+z = np.random.normal( 0 , 1 , size=2000 )
 
 
 mynorm = np.sqrt( x**2 + y**2 + z**2 )
@@ -190,6 +190,31 @@ if __name__ == "__main__":
     
     start = time.time()
     
+    """pts = np.array([ [0, 0, 0 ] , 
+                     [0, 0, 0.5] , 
+                     [0, 0.5, 0], 
+                     [0.5, 0, 0 ] ])
+    
+    mlab.close(all=True)
+    
+    mlab.figure( size=(1600 , 1600) , bgcolor=(1,1,1) )
+    
+    mlab.points3d( pts[:, 0], pts[:, 1], pts[:, 2] , 0.5*np.ones( len( pts ) ) ,
+                   scale_factor=2.0, resolution=20 )
+    mlab.view(distance=10)
+    
+    
+    loc_mat =  hertzian_move( pts )
+    
+    mlab.figure( size=(1600 , 1600) , bgcolor=(1,1,1) )
+    
+    mlab.points3d( loc_mat[:, 0], loc_mat[:, 1], loc_mat[:, 2] , 0.5*np.ones( len(loc_mat) ) ,
+                   scale_factor=2.0, resolution=20 )
+    mlab.view(distance=10)    
+    """
+
+
+    
     fname = 'large_pneumonia_coords.pkl'
     pkl_file = open(os.path.join( 'data_files' , fname ) , 'rb')
     loc_mat_list = cPickle.load(pkl_file)
@@ -204,19 +229,12 @@ if __name__ == "__main__":
     #Loop adjustment due to number of generation and generation time of a single cell
     num_loop = int( tau_p * num_gen )
 
-    #floc = loc_mat_list[5]
-    #floc = dla.dla_generator()
-    floc = np.load( 'dla_floc.npy')
-    
+    #floc = np.load( 'dla_floc.npy')
+    floc = dla.dla_generator( num_particles = 1000 )
     init_loc_mat = np.zeros( ( len(floc) , 3 ) )
     init_loc_mat = floc
     
     loc_mat                         = init_loc_mat.copy()
-#    dla_mat = sio.loadmat( 'test.mat' )[ 'map' ]
-#    
-#    cells = np.nonzero( dla_mat )
-#    
-#    loc_mat = np.array(cells).T
     
     mlab.close(all=True)
     

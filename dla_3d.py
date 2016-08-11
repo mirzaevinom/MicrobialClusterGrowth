@@ -98,7 +98,7 @@ if __name__=='__main__':
     import move_divide as md
     import visual_functions as vf
     
-    pts = dla_generator( num_particles = 1200)
+    pts = dla_generator( num_particles = 800)
     print md.fractal_dimension( pts )
     
     #np.save('dla_floc' , pts)
