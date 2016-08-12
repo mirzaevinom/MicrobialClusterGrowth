@@ -24,10 +24,10 @@ start = time.time()
 
 fnames = []
 
-flow_type = '0'
+flow_type = '2'
 
 for file in os.listdir("data_files"):
-    if ( file.find('division') >= 0 ) and file[-14]==flow_type:
+    if ( file.find('division') >= 0 ) and file[-5]==flow_type:
         fnames.append(file)
 
 deform_tcells = []
@@ -75,17 +75,17 @@ move_gyr = pd.DataFrame( move_gyr , columns = [ 'a' , 'b' ] )
 
 
 
-myfile = fnames[0]
+myfile = fnames[-1]
 
 pkl_file = open( os.path.join( 'data_files' , myfile ) , 'rb' )
 
-ext = '_flow_'+str( myfile[-14] ) + '.png'
+ext = '_flow_'+flow_type + '.png'
 
 data_dict_list = cPickle.load( pkl_file )        
 pkl_file.close()
 
 
-data_dict = data_dict_list[-1]
+data_dict = data_dict_list[0]
 locals().update( data_dict )
 
 fdim_list = np.zeros( len(loc_mat_list) )

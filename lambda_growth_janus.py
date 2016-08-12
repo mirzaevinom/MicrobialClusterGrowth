@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on June 23 2016
+Created on August 10 2016
 
 @author: Inom Mirzaev
 
@@ -9,7 +9,7 @@ Created on June 23 2016
 from __future__ import division
 
 
-from constants import lam, mu, gammadot, Gamma, sim_step, flow_type, tau_p , dt
+from constants import  mu , Gamma , flow_type, tau_p, gammadot 
 
 from multiprocessing import Pool
 
@@ -17,47 +17,48 @@ import numpy as np
 import deformation as dfm
 import move_divide as md
 
-import time, cPickle, os
+import time , cPickle , os
 import dla_3d as dla
 
 
 
-L = np.zeros([3,3])
-
-if flow_type == 0:
-    # Simple shear in one direction
-    L[0,1] = gammadot
+def grow_floc( lam , flow_type = flow_type ):
     
-elif flow_type ==1:
+    sim_step = 1 / gammadot
     
-    # Shear plus elongation flow
-    L[0,1] = gammadot
-    L[0,0] = gammadot
-    L[1, 1] = -gammadot
+    dt = sim_step / 10
 
-elif flow_type == 2:
+    L = np.zeros( [ 3 , 3 ] )
     
-    #Elongational flow
-    L[0,0] = gammadot
-    L[1, 1] = -gammadot
-    #L[2, 2] = -gammadot
-    #L *= 0.1
-else:
-    raise Exception("Please specify a valid flow type")
-
-
-###########
-#Number of generations for to be simulated
-num_gen = 10
-
-#Loop adjustment due to number of generation and generation time of a single cell
-num_loop = int( tau_p * num_gen / sim_step )
-
-
-
-
-def grow_floc( num_particles ):
-
+    if flow_type == 0:
+        # Simple shear in one direction
+        L[0,1] = gammadot
+        
+    elif flow_type == 1:
+        
+        # Shear plus elongation flow
+        L[0,1] = gammadot
+        L[0,0] = gammadot
+        L[1, 1] = -gammadot
+    
+    elif flow_type == 2:
+        
+        #Elongational flow
+        L[0,0] = gammadot
+        L[1, 1] = -gammadot
+        #L[2, 2] = -gammadot
+        #L *= 0.1
+    else:
+        raise Exception("Please specify a valid flow type")
+    
+    
+    ###########
+    #Number of generations for to be simulated
+    num_gen = 10
+    
+    #Loop adjustment due to number of generation and generation time of a single cell
+    num_loop = int( tau_p * num_gen / sim_step )
+    
 
     #==============================================================================
     # location matrix loc_mat  -- coordinate1--coordinate2--coordinate3-- living or 
@@ -68,9 +69,8 @@ def grow_floc( num_particles ):
     scale = 1 / shape
     cycle_time = tau_p * np.random.gamma( shape , scale , 10**5 )
     
-
     
-    floc = dla.dla_generator( num_particles = num_particles )
+    floc = dla.dla_generator( num_particles = 20 )
       
     init_loc_mat = np.zeros( ( len(floc) , 7 ) )
     init_loc_mat[ : , 0:3 ] = floc
@@ -78,37 +78,28 @@ def grow_floc( num_particles ):
    
     
     deform_radg                     = np.zeros( num_loop )
-    move_radg                       = np.zeros( num_loop )
     deform_cells                    = np.zeros( num_loop )
-    move_cells                      = np.zeros( num_loop )
-
+   
     loc_mat                         = init_loc_mat.copy()    
-    just_move                       = init_loc_mat.copy()
+  
     
     axes                            = np.zeros( ( num_loop + 1 , 3 ) )
     G_vector                        = np.zeros( ( num_loop + 1 , 6 ) )
     
        
     loc_mat_list = []
-    just_move_list = []
-    
-
     
     frag_list = []
-    move_frag_list = [] 
     
     for tt in range( num_loop ):
     
         deform_cells[tt]    = len(loc_mat)
-        move_cells[tt]      = len(just_move)
             
         #Append loc_mat at each half generation
         
         if np.mod(tt, int( num_loop / 10 ) -1 )==0 or tt == num_loop - 1:
             
             loc_mat_list.append([ loc_mat.copy() , tt])
-            just_move_list.append( [ just_move.copy() , tt ] )
-        
         
         #==============================================================================
         #   Since new cells were added we need to change the ellipsoid axis 
@@ -150,22 +141,9 @@ def grow_floc( num_particles ):
         
         deform_radg[tt] =  ( 1 / len(loc_mat) * np.sum( (loc_mat[: , 0:3] - c_mass )**2 ) ) **(1/2)
   
-        #==============================================================================
-        #   Measure the volume of just_move at that time
-        #==============================================================================
-        
-        just_move = md.hertzian_move(  just_move , sim_step=sim_step )
-    
-    
-        #radius of gyration
-        c_mass = np.mean( just_move[: , 0:3] , axis=0 )
-        
-        move_radg[tt] =  ( 1 / len(just_move) * np.sum( ( just_move[: , 0:3] - c_mass )**2 ) ) **(1/2)
-        
-        
         
         #==============================================================================
-        #     divide the cells in just_move
+        #     divide the cells in loc_mat
         #==============================================================================
         
         loc_mat[: , 4] = loc_mat[: , 4] + sim_step      
@@ -181,36 +159,14 @@ def grow_floc( num_particles ):
             
             loc_mat = md.cell_divide( loc_mat ,  mitotic_cells , tt)
 
-
-        #==============================================================================
-        #     divide the cells in just_move
-        #==============================================================================
-        
-        just_move[: , 4] = just_move[: , 4] + sim_step      
-        # Cells that have reached cycle time      
-        mitotic_cells1 = np.nonzero( just_move[ : , 4 ] > cycle_time[ range( len( just_move ) ) ] )[0]
-        
-        # Cells that are not quescent    
-        mitotic_cells2 = np.nonzero( just_move[ : , 3]  > 0 )[0]
-        
-        mitotic_cells =  np.intersect1d( mitotic_cells1 , mitotic_cells2 )
-               
-        if len(mitotic_cells) > 0:
-            
-            just_move = md.cell_divide( just_move ,  mitotic_cells , tt)
-
         
     data_dict = {
                 'init_loc_mat' : init_loc_mat ,
                 'loc_mat' : loc_mat  ,
                 'loc_mat_list' : loc_mat_list ,
-                'just_move_list' : just_move_list ,
                 'frag_list' : frag_list ,
-                'move_frag_list' : move_frag_list ,
                 'deform_radg' : deform_radg ,
-                'move_radg' : move_radg ,
                 'deform_cells' : deform_cells , 
-                'move_cells' : move_cells , 
                 'num_loop' : num_loop  ,
                 'axes' : axes,
                 'G_vector' : G_vector,
@@ -218,8 +174,8 @@ def grow_floc( num_particles ):
                 'sim_step' : sim_step ,
                 'lam' : lam ,
                 'mu' : mu ,
-                'floc' : floc,
-                'gammadot' : gammadot,
+                'floc' : floc ,
+                'gammadot' : gammadot ,
                 'Gamma' : Gamma
                }
     return data_dict
@@ -231,14 +187,17 @@ if __name__=='__main__':
     start = time.time()
     print time.strftime( "%H_%M" , time.localtime() )
     #Usually number of CPUs is good number for number of proccess
-    pool = Pool( processes = 3 )
+    pool = Pool( processes = 5 )
     
-    ey_nana = np.arange(20, 50, 5)
+    #ey_nana = np.array( [1 , 5 , 10 , 15 , 20 ] ) 
+    
+    ey_nana = np.array( [ 10 , 20 , 30 , 40 , 50 ] )
     
     result = pool.map( grow_floc , ey_nana )
+    
     #result = map( deform_floc , ey_nana )
     
-    fname = 'data_'+ time.strftime( "_%m_%d_%H_%M_%S" , time.localtime() )  +'_division'+ str( flow_type )+'.pkl'  
+    fname = 'data_'+ time.strftime( "_%m_%d_%H_%M_%S" , time.localtime() )  +'_lambda_'+  str( flow_type )+'.pkl'  
     output_file = open( os.path.join( 'data_files' , fname ) , 'wb')
       
     cPickle.dump(result, output_file)

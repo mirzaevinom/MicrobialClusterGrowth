@@ -30,7 +30,7 @@ fnames = []
 flow_type = '2'
 
 for file in os.listdir("data_files"):
-    if file.endswith("growth.pkl") and file[-15]==flow_type:
+    if ( file.find('deform') >= 0 ) and file[-5]==flow_type:
         fnames.append(file)
 
 deform_fdims = []
@@ -63,43 +63,16 @@ for mm in range(len(fnames)):
         move_fdims.append( [ len(data_dict['just_move_list'][0][0]), md.fractal_dimension( just_move ) ] )
         
 
-"""        
-deform_fdims = np.asarray( deform_fdims)
-deform_fdims = np.sort( deform_fdims , axis=0 )
-
-
-# for the visualization purposes delete the floc with almost same number cells 
-bb = deform_fdims.copy()
-bb[:,1] = 0
-
-mydist = cdist( bb , bb , p=1 )
-mydist +=30*np.triu( np.ones_like( mydist ) )    
-indice = np.nonzero( np.min(mydist, axis=1)>0 )[0]
-
-deform_fdims = deform_fdims[ indice ]
-
-
-move_fdims   = np.asarray( move_fdims )
-move_fdims = np.sort( move_fdims , axis=0 )    
-
-# for the visualization purposes delete the floc with almost same number cells 
-move_fdims = move_fdims[ indice ]
-
-deform_fdims[ deform_fdims[:,1]>3, 1] = 3
-move_fdims[move_fdims[:,1]>3 , 1] = 3"""
-#Load all the parameters and simulation results from the pkl file
-
-
 deform_fdims = pd.DataFrame( deform_fdims , columns=['a', 'b'] )
 move_fdims = pd.DataFrame( move_fdims , columns=['a', 'b'] )
 
 
 
-myfile = fnames[-1]
+myfile = fnames[0]
 
 pkl_file = open(os.path.join( 'data_files' , myfile ) , 'rb')
 
-ext = '_flow_'+str( myfile[-15] ) + '.png'
+ext = '_flow_'+flow_type + '.png'
 
 data_dict_list = cPickle.load( pkl_file )        
 pkl_file.close()

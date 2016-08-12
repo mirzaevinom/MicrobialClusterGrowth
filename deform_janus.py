@@ -136,7 +136,7 @@ def deform_floc( num_particles ):
         #    move the cells    
         #==============================================================================
             
-        loc_mat = md.hertzian_move(  loc_mat , delta_t = sim_step )
+        loc_mat = md.hertzian_move(  loc_mat , sim_step=sim_step )
         
         #radius of gyration
         c_mass = np.mean( loc_mat[: , 0:3] , axis=0 )
@@ -147,7 +147,7 @@ def deform_floc( num_particles ):
         #   Measure the volume of just_move at that time
         #==============================================================================
         
-        just_move = md.hertzian_move(  just_move )
+        just_move = md.hertzian_move(  just_move , sim_step = sim_step )
     
     
         #radius of gyration
@@ -193,7 +193,7 @@ if __name__=='__main__':
     result = pool.map( deform_floc , ey_nana )
     #result = map( deform_floc , ey_nana )
     
-    fname = 'data_'+ time.strftime( "_%m_%d_%H_%M" , time.localtime() ) + '_deform_'+str( flow_type ) +'.pkl'  
+    fname = 'data_'+ time.strftime( "_%m_%d_%H_%M_%S" , time.localtime() ) + '_deform_'+str( flow_type ) +'.pkl'  
     output_file = open( os.path.join( 'data_files' , fname ) , 'wb')
       
     cPickle.dump(result, output_file)

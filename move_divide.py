@@ -16,50 +16,59 @@ import numpy as np
 
 
 def hertzian_move( loc_mat ,  ksi = ksi ,  pull_const = pull_const,
-                  delta_t = sim_step , rep_const = rep_const , 
+                  sim_step = sim_step , rep_const = rep_const , 
                   cell_rad = cell_rad , r_cut = r_cut ):
                    
     N = len(loc_mat)               
     indices = np.arange(N)
-               
-    for cnum in np.random.permutation( np.arange( N ) ):
 
-        vec         = loc_mat[ cnum , 0:3] - loc_mat[ indices != cnum , 0:3]
+    delta_t  = 1    
+    if sim_step > delta_t:
+        num_steps = int( sim_step / delta_t )
+    else:
+        num_steps = 1
+        delta_t = sim_step
+    
+    for nn in range( num_steps ):
         
-        mag_vec     = np.linalg.norm( vec, axis=1)
-        
-        
-        # Repulsive forces
-        neig1        =  np.nonzero( mag_vec <= 2*cell_rad )[0]
-        mag_vec1     = mag_vec[ neig1 ]
-        vec1         = vec[ neig1 ]
+        for cnum in np.random.permutation( np.arange( N ) ):
+    
+            vec         = loc_mat[ cnum , 0:3] - loc_mat[ indices != cnum , 0:3]
             
-        #==============================================================================
-        #            magnitude of the cell-cell repulsion force in Herz model 
-        #==============================================================================
-        
-        force1       = rep_const * ( 2 * cell_rad  - mag_vec1 )**1.5
-        
-        #repulsive Hertz force vector 
-        repul_force    = np.sum ( ( vec1.T * force1 ).T , axis=0 )
-        
-        
-        #cell-cell pulling force
-        neig2        =  np.nonzero( mag_vec <= r_cut )[0]        
-        neig3        =  np.nonzero( mag_vec > 2*cell_rad )[0]
-        
-        neig         = np.intersect1d( neig2, neig3 )
-   
-        mag_vec2     = mag_vec[ neig ] - 2*cell_rad
-        vec2         = vec[ neig ]
+            mag_vec     = np.linalg.norm( vec, axis=1)
             
-        #force2    = -0.5 * pull_const * np.pi / ( r_cut - 1 ) * np.cos( 0.5*np.pi * mag_vec2 / ( r_cut - 1 ) )     
-        
-        force2 = - 0.5 * np.pi * pull_const * np.exp( - (mag_vec2 - 2*cell_rad)**2 / ( 2 * (r_cut - 2*cell_rad)**2 )  )
-        
-        attr_force    = np.sum ( ( vec2.T * force2 ).T , axis=0 )
-        
-        loc_mat[ cnum , 0:3]    += delta_t / ksi * ( repul_force + attr_force)   
+            
+            # Repulsive forces
+            neig1        =  np.nonzero( mag_vec <= 2*cell_rad )[0]
+            mag_vec1     =  mag_vec[ neig1 ]
+            vec1         =  vec[ neig1 ]
+                
+            #==============================================================================
+            #            magnitude of the cell-cell repulsion force in Herz model 
+            #==============================================================================
+            
+            force1       = rep_const * ( 2 * cell_rad  - mag_vec1 )**1.5
+            
+            #repulsive Hertz force vector 
+            repul_force    = np.sum ( ( vec1.T * force1 ).T , axis=0 )
+            
+            
+            #cell-cell pulling force
+            neig2        =  np.nonzero( mag_vec <= r_cut )[0]        
+            neig3        =  np.nonzero( mag_vec > 2*cell_rad )[0]
+            
+            neig         = np.intersect1d( neig2, neig3 )
+       
+            mag_vec2     = mag_vec[ neig ] - 2*cell_rad
+            vec2         = vec[ neig ]
+                
+            #force2    = -0.5 * pull_const * np.pi / ( r_cut - 1 ) * np.cos( 0.5*np.pi * mag_vec2 / ( r_cut - 1 ) )     
+            
+            force2 = - 0.5 * np.pi * pull_const * np.exp( - (mag_vec2 - 2*cell_rad)**2 / ( 2 * (r_cut - 2*cell_rad)**2 )  )
+            
+            attr_force    = np.sum ( ( vec2.T * force2 ).T , axis=0 )
+            
+            loc_mat[ cnum , 0:3]    += delta_t / ksi * ( repul_force + attr_force)   
         
     return loc_mat
 
@@ -231,6 +240,7 @@ if __name__ == "__main__":
 
     #floc = np.load( 'dla_floc.npy')
     floc = dla.dla_generator( num_particles = 1000 )
+    
     init_loc_mat = np.zeros( ( len(floc) , 3 ) )
     init_loc_mat = floc
     
