@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 import deformation as dfm
 
-from constants import lam, mu, gammadot, Gamma
+from constants import lam, mu, Gamma
 
 import dla_3d
 import numpy as np
@@ -18,18 +18,18 @@ import time, cPickle, os
 
 
 # set the initial axes
-a0 = np.array( [ 10.0, 9.0 , 9.0 ] )
+a0 = np.array( [ 10, 10 , 10 ] )
 #a0 = np.sort( 1 + 10*np.random.rand(3) )[::-1]
 
 t0 = 0
 
-gammadot = 10
+gammadot = 0.1
 
-sim_step = 1 / gammadot
+sim_step = 10
 
 #sim_step = 0.1 / gammadot
 
-dt = 0.01
+dt = 0.1
 
 start = time.time()
 # set up the matrix velocity gradient L defined by du/dy=gammadot
@@ -37,7 +37,7 @@ start = time.time()
 
 L = np.zeros([3,3])
 
-flow_type = 0
+flow_type = 2
 
 if flow_type == 0:
     # Simple shear in one direction

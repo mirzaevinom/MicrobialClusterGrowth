@@ -8,7 +8,7 @@ Created on June 23 2016
 
 from __future__ import division
 
-from constants import lam, mu, gammadot, Gamma, sim_step, flow_type, tau_p , dt
+from constants import lam, mu, gammadot, Gamma, flow_type, tau_p , dt , sim_step
 
 from multiprocessing import Pool
 
@@ -187,8 +187,8 @@ if __name__=='__main__':
     print time.strftime( "%H_%M" , time.localtime() )
     
     #Usually number of CPUs is good number for number of proccess
-    pool = Pool( processes = 3 )
-    ey_nana = np.arange( 200, 1250 , 200)
+    pool = Pool( processes = 5 )
+    ey_nana = np.arange( 200, 1050 , 200 )
 
     result = pool.map( deform_floc , ey_nana )
     #result = map( deform_floc , ey_nana )

@@ -21,7 +21,7 @@ start = time.time()
 
 fnames = []
 
-flow_type = '0'
+flow_type = '2'
 
 for file in os.listdir("data_files"):
     if ( file.find('shear') >= 0 ) and file[-5]==flow_type:
@@ -76,7 +76,7 @@ aa[1] *=1.1
 
 ax.axis(aa)
 
-img_name = 'num_cells_plot_'+ext
+img_name = 'shear_plot_'+ext
 plt.savefig( os.path.join( 'images' , img_name ) , dpi=400, bbox_inches='tight')
 
 

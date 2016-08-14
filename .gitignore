@@ -2,7 +2,13 @@
 *.png
 *.npy
 *.pkl
+*.mp4
 
+misc/
+writeup/
+animation/
+images/
+tests.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

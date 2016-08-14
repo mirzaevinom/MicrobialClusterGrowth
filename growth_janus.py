@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on June 23 2016
-
 @author: Inom Mirzaev
-
 """
 
 from __future__ import division
@@ -231,9 +229,9 @@ if __name__=='__main__':
     start = time.time()
     print time.strftime( "%H_%M" , time.localtime() )
     #Usually number of CPUs is good number for number of proccess
-    pool = Pool( processes = 3 )
+    pool = Pool( processes = 5 )
     
-    ey_nana = np.arange(20, 50, 5)
+    ey_nana = np.arange(5, 30, 5)
     
     result = pool.map( grow_floc , ey_nana )
     #result = map( deform_floc , ey_nana )
@@ -248,6 +246,3 @@ if __name__=='__main__':
     end = time.time()
     
     print "Elapsed time " + str( round( (end - start) / 60 , 1)  ) + " minutes"    
-
-    
-    

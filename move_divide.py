@@ -22,7 +22,7 @@ def hertzian_move( loc_mat ,  ksi = ksi ,  pull_const = pull_const,
     N = len(loc_mat)               
     indices = np.arange(N)
 
-    delta_t  = 1    
+    delta_t  = 0.1    
     if sim_step > delta_t:
         num_steps = int( sim_step / delta_t )
     else:
@@ -199,7 +199,7 @@ if __name__ == "__main__":
     
     start = time.time()
     
-    """pts = np.array([ [0, 0, 0 ] , 
+    pts = np.array([ [0, 0, 0 ] , 
                      [0, 0, 0.5] , 
                      [0, 0.5, 0], 
                      [0.5, 0, 0 ] ])
@@ -220,26 +220,19 @@ if __name__ == "__main__":
     mlab.points3d( loc_mat[:, 0], loc_mat[:, 1], loc_mat[:, 2] , 0.5*np.ones( len(loc_mat) ) ,
                    scale_factor=2.0, resolution=20 )
     mlab.view(distance=10)    
-    """
+    print loc_mat    
 
-
-    
-    fname = 'large_pneumonia_coords.pkl'
-    pkl_file = open(os.path.join( 'data_files' , fname ) , 'rb')
-    loc_mat_list = cPickle.load(pkl_file)
-    pkl_file.close()
-    
-    
-    tau_p = 100
+    """    
+    tau_p = 1800
     
     #Number of generations for to be simulated
-    num_gen = 4
+    num_gen = 1
     
     #Loop adjustment due to number of generation and generation time of a single cell
     num_loop = int( tau_p * num_gen )
 
     #floc = np.load( 'dla_floc.npy')
-    floc = dla.dla_generator( num_particles = 1000 )
+    floc = dla.dla_generator( num_particles = 200 )
     
     init_loc_mat = np.zeros( ( len(floc) , 3 ) )
     init_loc_mat = floc
@@ -293,7 +286,7 @@ if __name__ == "__main__":
     mtime = np.linspace(0, num_loop*sim_step, len(f_dims) )
     plt.plot( mtime,  f_dims , linewidth=2)
     img_name = 'restructuring_effect.png'
-    plt.savefig( os.path.join( 'images' , img_name ) , dpi=400, bbox_inches='tight')
+    plt.savefig( os.path.join( 'images' , img_name ) , dpi=400, bbox_inches='tight')"""
 
     """data_dict = {
     

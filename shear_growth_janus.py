@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on August 10 2016
-
 @author: Inom Mirzaev
-
 """
 
 from __future__ import division
@@ -207,6 +205,3 @@ if __name__=='__main__':
     end = time.time()
     
     print "Elapsed time " + str( round( (end - start) / 60 , 1)  ) + " minutes"    
-
-    
-    
