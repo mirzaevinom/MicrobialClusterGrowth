@@ -9,7 +9,7 @@ Created on May 27 2016
 from __future__ import division
 from scipy.spatial.distance import cdist
 from scipy.spatial import ConvexHull
-from constants import ksi, pull_const, sim_step , rep_const, cell_rad, r_cut
+from constants import ksi, pull_const, sim_step , rep_const, cell_rad, r_cut, tau_p
 
 import numpy as np
 
@@ -193,12 +193,12 @@ if __name__ == "__main__":
     
     import mayavi.mlab as mlab
     import cPickle, os, time
-    import scipy.io as sio
     import matplotlib.pyplot as plt
     import dla_3d as dla
     
-    start = time.time()
     
+    start = time.time()
+    """
     pts = np.array([ [0, 0, 0 ] , 
                      [0, 0, 0.5] , 
                      [0, 0.5, 0], 
@@ -223,7 +223,6 @@ if __name__ == "__main__":
     print loc_mat    
 
     """    
-    tau_p = 1800
     
     #Number of generations for to be simulated
     num_gen = 1
@@ -231,8 +230,8 @@ if __name__ == "__main__":
     #Loop adjustment due to number of generation and generation time of a single cell
     num_loop = int( tau_p * num_gen )
 
-    #floc = np.load( 'dla_floc.npy')
-    floc = dla.dla_generator( num_particles = 200 )
+    floc = np.load( 'dla_floc.npy')
+    #floc = dla.dla_generator( num_particles = 200 )
     
     init_loc_mat = np.zeros( ( len(floc) , 3 ) )
     init_loc_mat = floc
@@ -246,9 +245,6 @@ if __name__ == "__main__":
     mlab.points3d( loc_mat[:, 0], loc_mat[:, 1], loc_mat[:, 2] , 0.5*np.ones( len(loc_mat) ) ,
                    scale_factor=2.0, resolution=20 )
                    
-    img_name = 'restructuring_initial.png'
-    mlab.savefig( os.path.join( 'images' , img_name ) )
-
     
     f_dims = []
     rad_gyr = []
@@ -278,16 +274,11 @@ if __name__ == "__main__":
     mlab.points3d( loc_mat[:, 0], loc_mat[:, 1], loc_mat[:, 2] , 0.5*np.ones( len(loc_mat) ) ,
                    scale_factor=2.0, resolution=20 )
     
-    img_name = 'restructuring_final.png'
-    mlab.savefig( os.path.join( 'images' , img_name ) )
-
     plt.close('all')
     plt.figure(0)
     mtime = np.linspace(0, num_loop*sim_step, len(f_dims) )
     plt.plot( mtime,  f_dims , linewidth=2)
-    img_name = 'restructuring_effect.png'
-    plt.savefig( os.path.join( 'images' , img_name ) , dpi=400, bbox_inches='tight')"""
-
+ 
     """data_dict = {
     
                'floc' : floc , 
@@ -295,7 +286,6 @@ if __name__ == "__main__":
                'f_dims' : f_dims ,
                'rad_gyr' : rad_gyr , 
                'num_loop' : num_loop,
-               'delta_t' : delta_t,
                'tau_p': tau_p , 
                'r_cut' : r_cut ,
                'pull_const' : pull_const                          

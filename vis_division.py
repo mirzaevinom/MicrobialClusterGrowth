@@ -175,6 +175,8 @@ plt.tick_params( axis ='both', labelsize=15 )
 plt.xlabel( 'Time (h)' , fontsize = 20 )
 plt.ylabel( 'Number of cells' , fontsize = 20)
 plt.legend( loc = 'best', fontsize=20)
+plt.locator_params( nbins=6)
+
 
 img_name = 'numcells_growth'+ext
 plt.savefig( os.path.join( 'images' , img_name ) , dpi=400, bbox_inches='tight')
@@ -182,63 +184,60 @@ plt.savefig( os.path.join( 'images' , img_name ) , dpi=400, bbox_inches='tight')
 
 
 
-fig = plt.figure( 3 , figsize=(20, 12) )
+fig = plt.figure( 3  )
 
 ax = fig.add_subplot(111)
 
-ax.grid(True)
+#ax.grid(True)
 
-ax.errorbar( deform_tcells.groupby('a')['a'].first() , deform_tcells.groupby('a')['b'].mean()  ,
-            yerr = deform_tcells.groupby('a')['b'].std(), fmt='-o', markersize=10,
-            linewidth=2, color='blue', label ='restructuring + deformation' )
+vf.confidence_plot( ax , deform_tcells , label ='restructuring + deformation')
 
 
-ax.errorbar( move_tcells.groupby('a')['a'].first() , move_tcells.groupby('a')['b'].mean()  ,
-            yerr = move_tcells.groupby('a')['b'].std(), fmt='-o', markersize=10,
-            linewidth=2, color='red', label ='restructuring' )
+
+vf.confidence_plot( ax , move_tcells , color = 'red' , label ='restructuring')
 
 
-ax.set_xlabel('Initial number of cells of a floc', fontsize = 25)
-ax.set_ylabel( 'Final number of cells of a floc' , fontsize = 25 )
-ax.tick_params(axis='both', labelsize=25)
+ax.set_xlabel('Initial cell count', fontsize = 20)
+ax.set_ylabel( 'Cell count after '+str(xdata[-1])+' hours' , fontsize = 20 )
+ax.tick_params(axis='both', labelsize=15)
+ax.locator_params( nbins=6)
+
 aa = list( ax.axis() )
 aa[0] -= 1
 aa[1] +=1
 ax.axis(aa)
 
-plt.legend(loc='best', fontsize=25)
+plt.legend(loc='best', fontsize=20)
 
-img_name = 'num_cells_plot_'+ext
+img_name = 'division_numcells'+ext
 plt.savefig( os.path.join( 'images' , img_name ) , dpi=400, bbox_inches='tight')
 
 
-fig = plt.figure( 4 , figsize=(20, 12) )
+fig = plt.figure( 4  )
 
 ax = fig.add_subplot(111)
 
-ax.grid(True)
+#ax.grid(True)
 
-ax.errorbar( deform_gyr.groupby('a')['a'].first() , deform_gyr.groupby('a')['b'].mean()  ,
-            yerr = deform_gyr.groupby('a')['b'].std(), fmt='-o', markersize=10,
-            linewidth=2, color='blue', label ='restructuring + deformation' )
+vf.confidence_plot( ax , deform_gyr , label ='restructuring + deformation')
 
 
-ax.errorbar( move_gyr.groupby('a')['a'].first() , move_gyr.groupby('a')['b'].mean()  ,
-            yerr = move_gyr.groupby('a')['b'].std(), fmt='-o', markersize=10,
-            linewidth=2, color='red', label ='restructuring' )
 
+vf.confidence_plot( ax , move_gyr , color = 'red' , label ='restructuring')
 
-ax.set_xlabel('Initial number of cells of a floc', fontsize = 25)
-ax.set_ylabel( 'Final radius of gyration of the floc' , fontsize = 25 )
-ax.tick_params(axis='both', labelsize=25)
+ax.set_xlabel('Initial cell count', fontsize = 20)
+ax.set_ylabel( '$R_g$ after '+str(xdata[-1])+' hours' , fontsize = 20 )
+ax.tick_params(axis='both', labelsize=15)
+ax.locator_params( nbins=6)
+
 aa = list( ax.axis() )
 aa[0] -= 1
 aa[1] +=1
 ax.axis(aa)
 
-plt.legend(loc='best', fontsize=25)
+plt.legend(loc='best', fontsize=20)
 
-img_name = 'rad_gyr_plot_'+ext
+img_name = 'division_radgyr'+ext
 plt.savefig( os.path.join( 'images' , img_name ) , dpi=400, bbox_inches='tight')
 
 

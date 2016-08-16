@@ -21,7 +21,7 @@ mu = mu_si * 1e-6                    # microNewton s / micrometer^2
 # shear rate, 1/s
 #Increasing shear rate doesn't seem to incease deformation 
 #Amount of deformation for larger values of lam does not much depend on shear rate
-gammadot = 0.1                          
+gammadot = 1                          
 
 # interfacial tension, N/m
 Gamma = 1e-8                           
@@ -37,7 +37,7 @@ dt = sim_step / 10
 tau_p = 30*60
 
 #Flow type for simulations
-flow_type = 2
+flow_type = 0
 
 
 

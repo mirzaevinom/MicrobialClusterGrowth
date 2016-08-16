@@ -46,12 +46,10 @@ else:
 
 ###########
 #Number of generations for to be simulated
-num_gen = 10
+num_gen = 8
 
 #Loop adjustment due to number of generation and generation time of a single cell
 num_loop = int( tau_p * num_gen / sim_step )
-
-
 
 
 def grow_floc( num_particles ):
@@ -231,7 +229,7 @@ if __name__=='__main__':
     #Usually number of CPUs is good number for number of proccess
     pool = Pool( processes = 5 )
     
-    ey_nana = np.arange(5, 30, 5)
+    ey_nana = [4 , 8 , 12 , 16 , 20 ]
     
     result = pool.map( grow_floc , ey_nana )
     #result = map( deform_floc , ey_nana )

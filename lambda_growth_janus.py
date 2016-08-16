@@ -52,7 +52,7 @@ def grow_floc( lam , flow_type = flow_type ):
     
     ###########
     #Number of generations for to be simulated
-    num_gen = 10
+    num_gen = 8
     
     #Loop adjustment due to number of generation and generation time of a single cell
     num_loop = int( tau_p * num_gen / sim_step )
@@ -68,7 +68,7 @@ def grow_floc( lam , flow_type = flow_type ):
     cycle_time = tau_p * np.random.gamma( shape , scale , 10**5 )
     
     
-    floc = dla.dla_generator( num_particles = 20 )
+    floc = dla.dla_generator( num_particles = 5 )
       
     init_loc_mat = np.zeros( ( len(floc) , 7 ) )
     init_loc_mat[ : , 0:3 ] = floc

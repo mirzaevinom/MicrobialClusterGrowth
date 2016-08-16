@@ -17,7 +17,8 @@ import mayavi.mlab as mlab
 import move_divide as md
 from tvtk.api import tvtk
 from tvtk.tools import visual
-
+import scipy.stats as st
+import pandas as pd
 
 
 
@@ -153,6 +154,24 @@ def floc_axes( floc , cell_color = hex2color('#32CD32') ):
     mlab.plot3d(yx,yy,yz,line_width=0.01,tube_radius=0.1, color=(0,0,0) )
     mlab.plot3d(zx,zy,zz,line_width=0.01,tube_radius=0.1 , color=(0,0,0) )
     mlab.plot3d(xx,xy,xz,line_width=0.01,tube_radius=0.1 , color=(0,0,0) )
+    
+    
+def confid_int( df , xcol , ycol , cint = 0.95):
+    aa = st.t.interval( cint , len( df[xcol] ) - 1 , loc = df[ycol].mean()  , scale = st.sem( df[ycol] ) )
+    return [aa[0] , aa[1] ]
+
+    
+def confidence_plot( ax , df , xcols='a' , ycols='b' , color = 'blue' , label = '' ):
+    
+    myerr = df.groupby(xcols).apply( confid_int , xcol=xcols , ycol=ycols )
+    
+    myerr = pd.DataFrame( list( myerr.values) , index = myerr.index ).values
+    mymean = df.groupby(xcols)[ycols].mean().values 
+    
+    ax.errorbar( df.groupby(xcols)[xcols].first() , mymean ,
+                yerr = [ mymean - myerr[: , 0] , myerr[:, 1] - mymean ] , fmt='-o', markersize=10,
+                linewidth=2, color=color , label = label)
+    
     
 
 if __name__=='__main__':    

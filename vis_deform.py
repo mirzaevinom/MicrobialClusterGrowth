@@ -34,7 +34,10 @@ for file in os.listdir("data_files"):
         fnames.append(file)
 
 deform_fdims = []
+deform_gyr = []
+
 move_fdims  = []
+move_gyr = []
 
 for mm in range(len(fnames)):
     
@@ -59,12 +62,21 @@ for mm in range(len(fnames)):
                    
         loc_mat = data_dict['loc_mat_list'][-1][0]
         deform_fdims.append( [ len(data_dict['loc_mat_list'][0][0]) , md.fractal_dimension( loc_mat ) ] )
+        deform_gyr.append( [ len(data_dict['loc_mat_list'][0][0]) , data_dict['deform_radg'][-1] ] )
+                
+        
+        
         just_move = data_dict['just_move_list'][-1][0]
         move_fdims.append( [ len(data_dict['just_move_list'][0][0]), md.fractal_dimension( just_move ) ] )
+        move_gyr.append( [ len(data_dict['loc_mat_list'][0][0]) , data_dict['move_radg'][-1] ] )
         
 
 deform_fdims = pd.DataFrame( deform_fdims , columns=['a', 'b'] )
+deform_gyr = pd.DataFrame( deform_gyr , columns=['a', 'b'] )
+
+
 move_fdims = pd.DataFrame( move_fdims , columns=['a', 'b'] )
+move_gyr = pd.DataFrame( move_gyr , columns=['a', 'b'] )
 
 
 
@@ -192,10 +204,10 @@ end = time.time()
 plt.figure(2)
 
 
-xdata = np.linspace( 0, sim_step*num_loop/60/60, len(deform_radg[::100]))
+xdata = np.linspace( 0, sim_step*num_loop/60/60, len(deform_radg))
 
-plt.plot( xdata , deform_radg[::100] , linewidth=2, color='blue',label ='restructuring + deformation' )
-plt.plot( xdata , move_radg[::100] , linewidth=2, color='red' , label ='restructuring')
+plt.plot( xdata[::20] , deform_radg[::20] , linewidth=2, color='blue',label ='restructuring + deformation' )
+plt.plot( xdata[::20] , move_radg[::20] , linewidth=2, color='red' , label ='restructuring')
 
 plt.xlabel( 'Time (h)' , fontsize = 20 )
 plt.ylabel( 'Radius of gyration' , fontsize = 20)
@@ -209,62 +221,9 @@ img_name = 'radg_evolution_'+ext
 plt.savefig( os.path.join( 'images' , img_name ) , dpi=400, bbox_inches='tight')
 
 
-
-
-if len(frag_list)>1:
-    plt.figure(4)
-    
-    plt.hist( frag_list , 50, normed=False, alpha=0.6, color='g')  # plt.hist passes it's arguments to np.histogram
-    plt.title("Histogram of fragments with deformation")
-    plt.show()
-
-
-if len(move_frag_list)>1:
-    plt.figure(5)
-    
-    plt.hist( move_frag_list , 50, normed=False, alpha=0.6, color='g')  # plt.hist passes it's arguments to np.histogram
-    plt.title("Histogram of fragments without deformation")
-    plt.show()
-
-
-"""
-fig = plt.figure( 6 , figsize=(20 , 12))
+fig = plt.figure( 3 )
 
 ax = fig.add_subplot(111)
-
-#ax.scatter( deform_fdims[:, 0] , deform_fdims[:, 1]  , color='blue', label ='with deformation')
-#ax.scatter( move_fdims[:, 0] , move_fdims[:, 1] , color='red', label = 'without deformation')
-
-bar_width = 5
-opacity = 0.8
-
-ax.bar( deform_fdims[:, 0] , deform_fdims[:, 1]  , width=bar_width , 
-       alpha=opacity , color='blue', label ='restructuring + deformation', align='center' )
-
-ax.bar( move_fdims[:, 0] + bar_width , move_fdims[:, 1] , width=bar_width , 
-       alpha=opacity , color='red', label ='restructuring' , align='center')
-
-ax.set_xlabel('Number of cells of a floc', fontsize=25)
-ax.set_ylabel( 'Fractal dimension at the end of simulation' , fontsize = 25 )
-ax.tick_params(axis='x', labelsize=20)
-ax.tick_params(axis='y', labelsize=20)
-
-plt.legend(loc='best', fontsize=20)
-
-img_name = 'fdim_histogram_'+ext
-#plt.savefig( os.path.join( 'images' , img_name ) , dpi = 400 , bbox_inches = 'tight' )
-
-"""
-
-
-fig = plt.figure( 3 , figsize=(20 , 12))
-
-ax = fig.add_subplot(111)
-
-
-bar_width = 5
-opacity = 0.8
-
 
 ax.errorbar( deform_fdims.groupby('a')['a'].first() , deform_fdims.groupby('a')['b'].mean()  ,
             yerr = deform_fdims.groupby('a')['b'].std(), fmt='-o', markersize=10,
@@ -277,10 +236,10 @@ ax.errorbar( move_fdims.groupby('a')['a'].first() , move_fdims.groupby('a')['b']
 
 
 
-ax.set_xlabel('Number of cells of a floc', fontsize=25)
-ax.set_ylabel( 'Fractal dimension at the end of simulation' , fontsize = 25 )
-ax.tick_params(axis='x', labelsize=20)
-ax.tick_params(axis='y', labelsize=20)
+ax.set_xlabel('Number of cells of a floc', fontsize=20)
+ax.set_ylabel( '$D_f$ after '+str(xdata[-1])+' hours' , fontsize = 20 )
+ax.tick_params(axis='x', labelsize=15)
+ax.tick_params(axis='y', labelsize=15)
 aa = list( ax.axis() )
 aa[0] -= 10
 aa[1] +=10
@@ -288,13 +247,37 @@ ax.axis(aa)
 ax.grid(True)
 plt.legend(loc='best', fontsize=20)
 
-img_name = 'fdim_plot_'+ext
+img_name = 'deform_fdim'+ext
 plt.savefig( os.path.join( 'images' , img_name ) , dpi = 400 , bbox_inches = 'tight' )
 
 
+
+fig = plt.figure( 4 )
+
+ax = fig.add_subplot(111)
+
+vf.confidence_plot( ax , deform_gyr , label ='restructuring + deformation')
+
+
+
+vf.confidence_plot( ax , move_gyr , color = 'red' , label ='restructuring')
+
+ax.set_xlabel('Initial cell count', fontsize=20)
+ax.set_ylabel( '$R_g$ after '+str(xdata[-1])+' hours' , fontsize = 20 )
+ax.tick_params( labelsize=15 )
+ax.locator_params( nbins=6)
+
+aa = list( ax.axis() )
+aa[0] -= 10
+aa[1] +=10
+ax.axis(aa)
+#ax.grid(True)
+plt.legend(loc='best', fontsize=20)
+
+img_name = 'deform_radgyr'+ext
+plt.savefig( os.path.join( 'images' , img_name ) , dpi = 400 , bbox_inches = 'tight' )
+
 end = time.time()
-
-
 
 print myfile[-15], sim_step
 print 'Number of cells at the end ' + str( len(loc_mat) )

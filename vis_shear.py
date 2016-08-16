@@ -15,6 +15,7 @@ import mayavi.mlab as mlab
 import move_divide as md
 import visual_functions as vf
 import pandas as pd
+import scipy.stats as st
 
 start = time.time()
 
@@ -56,27 +57,28 @@ ext = '_flow_'+flow_type + '.png'
 #==============================================================================
 plt.close( 'all' )
 
-fig = plt.figure( 0 , figsize=(20, 12) )
+fig = plt.figure( 0  )
 
 ax = fig.add_subplot(111)
 
-ax.grid(True)
+vf.confidence_plot( ax , shear_tcells )
 
-ax.errorbar( shear_tcells.groupby('a')['a'].first() , shear_tcells.groupby('a')['b'].mean()  ,
-            yerr = shear_tcells.groupby('a')['b'].std(), fmt='-o', markersize=10,
-            linewidth=2, color='blue' )
+ax.set_xlabel('Shear rate', fontsize = 20)
+
+tot_hours = str(data_dict['num_loop']*data_dict['sim_step']/3600)
+ax.set_ylabel( 'Cell count after '+tot_hours+' hours' , fontsize = 20 )
+
+ax.tick_params(axis='both', labelsize = 15)
+ax.locator_params( nbins=6)
 
 
-ax.set_xlabel('Shear rate', fontsize = 25)
-ax.set_ylabel( 'Final number of cells of a floc' , fontsize = 25 )
-ax.tick_params(axis='both', labelsize=25)
 aa = list( ax.axis() )
 aa[0] *= 0.9
 aa[1] *=1.1
 
 ax.axis(aa)
 
-img_name = 'shear_plot_'+ext
+img_name = 'shear'+ext
 plt.savefig( os.path.join( 'images' , img_name ) , dpi=400, bbox_inches='tight')
 
 

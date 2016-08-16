@@ -52,7 +52,7 @@ def grow_floc( gammadot , flow_type = flow_type ):
     
     ###########
     #Number of generations for to be simulated
-    num_gen = 10
+    num_gen = 8
     
     #Loop adjustment due to number of generation and generation time of a single cell
     num_loop = int( tau_p * num_gen / sim_step )
@@ -68,7 +68,7 @@ def grow_floc( gammadot , flow_type = flow_type ):
     cycle_time = tau_p * np.random.gamma( shape , scale , 10**5 )
     
     
-    floc = dla.dla_generator( num_particles = 20 )
+    floc = dla.dla_generator( num_particles = 5 )
       
     init_loc_mat = np.zeros( ( len(floc) , 7 ) )
     init_loc_mat[ : , 0:3 ] = floc
@@ -187,9 +187,10 @@ if __name__=='__main__':
     #Usually number of CPUs is good number for number of proccess
     pool = Pool( processes = 5 )
     
-    #ey_nana = np.array( [1 , 5 , 10 , 15 , 20 ] ) 
     
-    ey_nana = np.array( [1 , 5 , 10 , 15 , 20 ] ) / 20
+    ey_nana = np.array( [1 , 5 , 10 , 15 , 20 ] ) 
+    if flow_type==2:    
+        ey_nana = np.array( [1 , 5 , 10 , 15 , 20 ] ) / 20
     
     result = pool.map( grow_floc , ey_nana )
     
