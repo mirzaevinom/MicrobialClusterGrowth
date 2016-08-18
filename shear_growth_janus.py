@@ -190,7 +190,7 @@ if __name__=='__main__':
     
     ey_nana = np.array( [1 , 5 , 10 , 15 , 20 ] ) 
     if flow_type==2:    
-        ey_nana = np.array( [1 , 5 , 10 , 15 , 20 ] ) / 20
+        ey_nana = np.array( [1 , 3 , 6 , 9 , 10 ] ) / 100
     
     result = pool.map( grow_floc , ey_nana )
     

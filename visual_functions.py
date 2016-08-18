@@ -7,21 +7,27 @@ Created on Juen 27, 2016
 """
 
 from __future__ import division
-from scipy.spatial.distance import cdist
-
 
 import deformation as dfm
 import numpy as np
 import matplotlib.pyplot as plt
 import mayavi.mlab as mlab
-import move_divide as md
 from tvtk.api import tvtk
-from tvtk.tools import visual
 import scipy.stats as st
 import pandas as pd
 
 
-
+import matplotlib.pylab as pylab
+params = {'legend.fontsize': 'x-large',
+          'lines.linewidth' : 2,
+          'figure.figsize': (8, 6),
+         'axes.labelsize': 'x-large',
+         'axes.titlesize':'x-large',
+         'xtick.labelsize':'x-large',
+         'ytick.labelsize':'x-large'}
+pylab.rcParams.update(params)
+    
+    
 def hex2color(s):
     
     "Convert hex string (like html uses, eg, #efefef ) to a r,g,b tuple"
@@ -157,21 +163,26 @@ def floc_axes( floc , cell_color = hex2color('#32CD32') ):
     
     
 def confid_int( df , xcol , ycol , cint = 0.95):
+    """Given a dataframe calculates confidence interval for the ycol"""
     aa = st.t.interval( cint , len( df[xcol] ) - 1 , loc = df[ycol].mean()  , scale = st.sem( df[ycol] ) )
     return [aa[0] , aa[1] ]
 
-    
+
 def confidence_plot( ax , df , xcols='a' , ycols='b' , color = 'blue' , label = '' ):
-    
+    """Given dataframe with two columns plots xcol vs ycol with confidence intervals"""
     myerr = df.groupby(xcols).apply( confid_int , xcol=xcols , ycol=ycols )
     
     myerr = pd.DataFrame( list( myerr.values) , index = myerr.index ).values
     mymean = df.groupby(xcols)[ycols].mean().values 
     
     ax.errorbar( df.groupby(xcols)[xcols].first() , mymean ,
-                yerr = [ mymean - myerr[: , 0] , myerr[:, 1] - mymean ] , fmt='-o', markersize=10,
-                linewidth=2, color=color , label = label)
+                yerr = [ mymean - myerr[: , 0] , myerr[:, 1] - mymean ] , fmt='-o', markersize=5,
+                color=color , label = label )
     
+    ax.tick_params( labelsize=15 )
+    ax.locator_params( nbins=6)
+    ax.margins(0.05)
+
     
 
 if __name__=='__main__':    

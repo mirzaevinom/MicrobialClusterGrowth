@@ -16,20 +16,19 @@ import time, cPickle, os
 """
 
 
-
 # set the initial axes
 a0 = np.array( [ 10, 10 , 10 ] )
 #a0 = np.sort( 1 + 10*np.random.rand(3) )[::-1]
 
 t0 = 0
 
-gammadot = 0.1
+gammadot = 0.05
 
-sim_step = 10
+sim_step = 1 / gammadot
 
 #sim_step = 0.1 / gammadot
 
-dt = 0.1
+dt = sim_step / 100
 
 start = time.time()
 # set up the matrix velocity gradient L defined by du/dy=gammadot
@@ -46,9 +45,9 @@ if flow_type == 0:
 elif flow_type ==1:
     
     # Shear plus elongation flow
-    L[0,1] = 2*gammadot
-    L[0,0] = -gammadot
-    L[1, 1] = -gammadot
+    L[0,0] = 2*gammadot
+    L[1,1] = -gammadot
+    L[2, 2] = -gammadot
 
 elif flow_type == 2:
 
@@ -59,12 +58,15 @@ elif flow_type == 2:
 else:
     raise Exception("Please specify a valid flow type")
     
-    
-# set up the initial shape tensor
-G0 = np.diag( 1.0 / a0**2 )
-G0v = dfm.tens2vec( G0 )
+a1 = a0
 
-a1 = dfm.deform( t0 , sim_step , dt , G0v , lam , mu , L , Gamma )[0]
+
+for nn in range(10):    
+    # set up the initial shape tensor
+    G0 = np.diag( 1.0 / a1**2 )
+    G0v = dfm.tens2vec( G0 )
+
+    a1 = dfm.deform( t0 , sim_step , dt , G0v , lam , mu , L , Gamma )[0]
 
 print a1
 print a1/a0
@@ -78,6 +80,8 @@ print 'Time elapsed' , round( end - start, 2), 'seconds'
 
 
 
+G0 = np.diag( 1.0 / a0**2 )
+G0v = dfm.tens2vec( G0 )
 axes = dfm.evolve(t0, sim_step , dt , G0v , lam , mu , L , Gamma )[0]
 
 taylor_deform  = np.max( ( axes[:, 0] - axes[:, 2] ) / ( axes[:, 0] + axes[:, 2]) )

@@ -89,10 +89,6 @@ def grow_floc( num_particles ):
     just_move_list = []
     
 
-    
-    frag_list = []
-    move_frag_list = [] 
-    
     for tt in range( num_loop ):
     
         deform_cells[tt]    = len(loc_mat)
@@ -201,8 +197,6 @@ def grow_floc( num_particles ):
                 'loc_mat' : loc_mat  ,
                 'loc_mat_list' : loc_mat_list ,
                 'just_move_list' : just_move_list ,
-                'frag_list' : frag_list ,
-                'move_frag_list' : move_frag_list ,
                 'deform_radg' : deform_radg ,
                 'move_radg' : move_radg ,
                 'deform_cells' : deform_cells , 
@@ -229,7 +223,7 @@ if __name__=='__main__':
     #Usually number of CPUs is good number for number of proccess
     pool = Pool( processes = 5 )
     
-    ey_nana = [4 , 8 , 12 , 16 , 20 ]
+    ey_nana = [4, 6 , 8 , 10 , 12]
     
     result = pool.map( grow_floc , ey_nana )
     #result = map( deform_floc , ey_nana )

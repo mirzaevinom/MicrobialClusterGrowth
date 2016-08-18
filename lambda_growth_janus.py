@@ -7,7 +7,7 @@ Created on August 10 2016
 from __future__ import division
 
 
-from constants import  mu , Gamma , flow_type, tau_p, gammadot 
+from constants import  mu , Gamma , flow_type, tau_p, gammadot , mu_si, cell_rad
 
 from multiprocessing import Pool
 
@@ -21,6 +21,8 @@ import dla_3d as dla
 
 
 def grow_floc( lam , flow_type = flow_type ):
+    
+    ksi = 6*cell_rad*np.pi *mu_si*lam 
     
     sim_step = 1 / gammadot
     
@@ -132,7 +134,7 @@ def grow_floc( lam , flow_type = flow_type ):
         #    move the cells    
         #==============================================================================
             
-        loc_mat = md.hertzian_move(  loc_mat , sim_step=sim_step )
+        loc_mat = md.hertzian_move(  loc_mat , sim_step=sim_step , ksi=ksi )
         
         #radius of gyration
         c_mass = np.mean( loc_mat[: , 0:3] , axis=0 )
@@ -191,6 +193,9 @@ if __name__=='__main__':
     
     ey_nana = np.array( [ 10 , 20 , 30 , 40 , 50 ] )
     
+    if flow_type==2:
+            ey_nana = np.array( [ 10 , 25 , 50 , 75 , 100 ] )
+        
     result = pool.map( grow_floc , ey_nana )
     
     #result = map( deform_floc , ey_nana )

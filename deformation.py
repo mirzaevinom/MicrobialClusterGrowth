@@ -401,8 +401,8 @@ def deform(t0, t1 , dt, G0v , lam , mu , L , Gamma ):
     
     mytime = np.arange(t0 , t1 + dt, dt)
     
-    opt = odeint(ode_rhs , G0v, mytime, args=(L, lam, mu, Gamma) , rtol=1e-6, 
-                 atol=1e-8, full_output=True , printmessg=False )   
+    opt = odeint(ode_rhs , G0v, mytime, args=(L, lam, mu, Gamma) , rtol=1e-9, 
+                 atol=1e-9, full_output=True , printmessg=False )   
     
     if opt[1]['message']=='Integration successful.':
   
@@ -422,7 +422,7 @@ def evolve(t0, t1 , dt, G0v , lam , mu , L , Gamma ):
         
     mytime = np.arange(t0 , t1 + dt, dt)
 
-    opt = odeint(ode_rhs , G0v, mytime, args=(L, lam, mu, Gamma) , rtol=1e-6, 
+    opt = odeint(ode_rhs , G0v, mytime, args=(L, lam, mu, Gamma) , rtol=1e-8, 
                  atol=1e-8, full_output=True , printmessg=False )   
     
     if opt[1]['message']=='Integration successful.':
@@ -542,7 +542,7 @@ def set_initial_pars(data_raw):
     data_rc = np.inner( data_c , evecs.T )
                                              
     # compute the axes lenghts                                                  
-    axes = 2*np.std(  data_rc , axis=0 )    
+    axes = 2*np.std(  data_rc , axis=0 )
 
     # sort the axes lengths                                                     
     indices=np.argsort(axes)[::-1]                                              

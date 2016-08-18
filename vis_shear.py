@@ -8,14 +8,11 @@ Created on Wed Jan 27 2016
 
 from __future__ import division
 
-import numpy as np
 import matplotlib.pyplot as plt
 import time, os, cPickle
-import mayavi.mlab as mlab
-import move_divide as md
+
 import visual_functions as vf
-import pandas as pd
-import scipy.stats as st
+import pandas as pd, mayavi.mlab as mlab
 
 start = time.time()
 
@@ -63,24 +60,25 @@ ax = fig.add_subplot(111)
 
 vf.confidence_plot( ax , shear_tcells )
 
-ax.set_xlabel('Shear rate', fontsize = 20)
+ax.set_xlabel('Shear rate')
 
 tot_hours = str(data_dict['num_loop']*data_dict['sim_step']/3600)
-ax.set_ylabel( 'Cell count after '+tot_hours+' hours' , fontsize = 20 )
-
-ax.tick_params(axis='both', labelsize = 15)
-ax.locator_params( nbins=6)
-
-
-aa = list( ax.axis() )
-aa[0] *= 0.9
-aa[1] *=1.1
-
-ax.axis(aa)
+ax.set_ylabel( 'Cell count after '+tot_hours+' hours' )
 
 img_name = 'shear'+ext
 plt.savefig( os.path.join( 'images' , img_name ) , dpi=400, bbox_inches='tight')
 
+
+
+data_dict = data_dict_list[0]
+
+mlab.close(all=True)
+floc = data_dict['loc_mat_list'][-1][0][:, 0:3]
+
+mlab.figure( size=(800, 800), bgcolor=(1,1,1) )
+vf.floc_axes( floc )
+               
+mlab.view(distance = 70 )
 
 end = time.time()
 print 'Time elapsed ',  round( ( end - start ) , 2 ) , ' seconds'

@@ -187,8 +187,8 @@ if __name__=='__main__':
     print time.strftime( "%H_%M" , time.localtime() )
     
     #Usually number of CPUs is good number for number of proccess
-    pool = Pool( processes = 5 )
-    ey_nana = np.arange( 200, 1050 , 200 )
+    pool = Pool( processes = 6 )
+    ey_nana = [100, 150, 200, 250, 300, 400 ]
 
     result = pool.map( deform_floc , ey_nana )
     #result = map( deform_floc , ey_nana )
